@@ -1,3 +1,3 @@
 # Machine_Learning_Project
-ML projects' repository \n
+ML projects' repositor
 ML for the future
