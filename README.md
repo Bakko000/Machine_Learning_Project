@@ -1,2 +1,2 @@
 # Machine_Learning_Project
-ML projects' repositor\ ML for the future
+ML projects' repositor for the future
