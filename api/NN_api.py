@@ -330,7 +330,7 @@ class BinaryNN():
         
         # Return in case of evaluation on TR set only
         else:
-            return (tr_loss, tr_accuracy)
+            return (tr_loss, tr_accuracy, vl_loss, vl_accuracy)
 
 
     def test(self, x_test, y_test):
