@@ -1,8 +1,7 @@
-from keras import Model, Sequential
-from keras.optimizers import SGD
-from keras.layers import Dense
-from keras.regularizers import l2
-from keras.callbacks import EarlyStopping
+import torch
+from torch import nn
+from torch import optim
+from torch.utils.data import TensorDataset, DataLoader
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.metrics import confusion_matrix
@@ -13,19 +12,41 @@ from sklearn.metrics import roc_curve, auc
 
 
 
+class MyDataset():
+    '''
+        Dascription
+    '''
+
+    def __init__(self, X, y) -> None:
+        self.X = X
+        self.y = y
+
+    def __len__(self):
+        return len(self.X)
+    
+    def __getitem__(self, i):
+        return self.X[i], self.y[i]
+        
 
 
 
-class BinaryNN():
+
+
+class BinaryNN(nn.Module):
     '''
         Class which offers methods to handle Neural Networks for Binary Classification tasks with at least 3 layers \
         (input, hidden and output) based on a dictionary of associations <hyperparameter_key,hyperparameter_value> \
         with the following keys: \n
-        'input_units', 'hidden_units', 'learning_rate', 'momentum', 'activation', 'output_activation', 'metrics'.
+        'input_units', 'hidden_units', 'learning_rate', 'momentum', 'input_activation', 'hidden_activation', 'output_activation', 'metrics'.
     '''
 
 
-    def __init__(self, params: dict, monk_i: int, trial: int):
+    def __init__(self, params: dict, monk_i: int, trial: int, n_hidden_layers: int):
+        super(BinaryNN, self).__init__()
+
+        # Sets the device used
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        torch.set_default_device(device)
 
         # Passed values initializations
         self.params = params
@@ -33,20 +54,100 @@ class BinaryNN():
         self.trial = trial
 
         # Default's values initializations
-        self.mean_tr_accuracy = 0
-        self.mean_vl_accuracy = 0
-        self.ts_accuracy      = 0
-        self.mean_tr_loss     = 0
-        self.mean_vl_loss     = 0
-        self.k_fold_counter   = 0
-        self.ts_loss          = 0
-        self.f1_score         = 0
-        self.f2_score         = 0
-        self.recall_score     = 0
-        self.precision_score  = 0
-        self.y_predictions    = []
-        self.model            = None
-        self.history          = None
+        self.history: dict[list] = {'tr_accuracy':[], 'vl_accuracy':[], 'tr_loss':[], 'vl_loss':[]}
+        self.mean_tr_accuracy    = 0
+        self.mean_vl_accuracy    = 0
+        self.ts_accuracy         = 0
+        self.mean_tr_loss        = 0
+        self.mean_vl_loss        = 0
+        self.tr_batch_counter    = 0
+        self.vl_batch_counter    = 0
+        self.ts_batch_counter    = 0
+        self.ts_loss             = 0
+        self.f1_score            = 0
+        self.f2_score            = 0
+        self.recall_score        = 0
+        self.precision_score     = 0
+        self.y_predictions: torch.Tensor = 
+        self.y_true: torch.Tensor = 
+
+        # Error case 
+        if n_hidden_layers < 0: 
+            raise ValueError 
+        
+        # Hidden activation function
+        if self.params['hidden_activation'] == 'Tanh':
+            activation = nn.ReLU()
+        elif self.params['hidden_activation'] == 'ReLU':
+            activation = nn.Tanh()
+        else:
+            raise ValueError
+    
+        # Input Layer
+        '''self.layers.append(
+            (
+                nn.Linear(self.params['input_size'], self.params['hidden_size']),
+                activation
+            )
+        )
+
+        # Hidden Layers
+        for _ in range(n_hidden_layers):
+            self.layers.append(
+                (
+                    nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
+                    activation
+                )
+            )
+        
+        # Output Layer
+        self.layers.append(
+            (
+                nn.Linear(self.params['hidden_size'], 1),
+                nn.Sigmoid()
+            )
+        )'''
+        self.layers = nn.Sequential(
+            nn.Linear(self.params['input_size'], self.params['hidden_size']),
+            activation,
+            nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
+            activation,
+            nn.Linear(self.params['hidden_size'], 1),
+            nn.Sigmoid()
+        )
+        self.add_module('layers', self.layers)
+
+        # Initialization of the Weights
+        self.init_weights()
+
+        # Loss Function
+        self.criterion = nn.BCELoss()
+        
+        # Optimizers
+        if self.params['optimizer'] == 'SGD':
+            self.optimizer = optim.SGD(
+                self.parameters(),
+                lr=self.params['learning_rate'],
+                momentum=self.params['momentum'],
+                weight_decay=self.params['weight_decay'],
+                nesterov=True
+            )
+        elif self.params['optimizer'] == 'Adam':
+            self.optimizer = optim.Adam(
+                self.parameters(),
+                lr=self.params['learning_rate'],
+                #momentum=self.params['momentum'],
+                weight_decay=self.params['weight_decay']
+            )
+        elif self.params['optimizer'] == 'RMSprop':
+            self.optimizer = optim.RMSprop(
+                self.parameters(),
+                lr=self.params['learning_rate'],
+                momentum=self.params['momentum'],
+                weight_decay=self.params['weight_decay']
+            )
+        else:
+            raise ValueError
 
     
     def __str__(self) -> str:
@@ -66,21 +167,25 @@ class BinaryNN():
             f" Recall score:             {self.recall_score}\n"
     
 
+    def init_weights(self):
+        '''
+            Initializes the weights of the layers with default values.
+        '''
+        for module in self.modules():
+            if isinstance(module, nn.Linear):
+                nn.init.xavier_uniform_(module.weight)
+                nn.init.zeros_(module.bias)
+
+
     def print_plot(self):
         '''
             Prints the plot based on the history of the trained model.
         '''
-        
-        # Error case
-        if self.history is None:
-            raise ValueError
-
-        # Print of the Plot
         plt.figure()
-        plt.plot(self.history.history['loss'], label='Training Loss')
-        plt.plot(self.history.history['val_loss'], label='Validation Loss')
-        plt.plot(self.history.history['accuracy'], label='Training Accuracy')
-        plt.plot(self.history.history['val_accuracy'], label='Validation Accuracy')
+        plt.plot(self.history['tr_loss'], label='Training Loss')
+        plt.plot(self.history['vl_loss'], label='Validation Loss')
+        plt.plot(self.history['tr_accuracy'], label='Training Accuracy')
+        plt.plot(self.history['vl_accuracy'], label='Validation Accuracy')
         plt.title('Learning Curve')
         plt.xlabel('Epoch')
         plt.legend()
@@ -88,7 +193,7 @@ class BinaryNN():
 
     def print_roc_curve(self, y_test):
         '''
-            Prints
+            Prints the ROC curve graphic.
         '''
         # Calculate the ROC curve 
         fpr, tpr, thresholds = roc_curve(y_test, self.y_predictions) 
@@ -139,54 +244,13 @@ class BinaryNN():
                 columns=['Predicted_Class_0', 'Predicted_Class_1']
             )
         )
+    
 
-
-    def create_model(self, n_hidden_layers: int) -> Model:
+    def forward(self, x):
         '''
-            Returns a Sequential Keras model with "n_hidden_layers" layers (input, hidden, output) created with the parameters \
-            passed to the object. Returns the model created.\n
-            - n_hidden_layers: number of hidden layers (bigger than 0).
+            Execute the forwarding pass.
         '''
-
-        # Error case
-        if n_hidden_layers < 0:
-            raise ValueError
-
-        # Build the sequential model
-        model = Sequential()
-
-        # Input Layer
-        model.add(Dense(units=self.params['input_units'], activation=self.params['activation'], use_bias=True))
-
-        # Hidden Layers
-        for _ in range(n_hidden_layers):
-            model.add(
-                Dense(
-                    units=self.params['hidden_units'],
-                    activation=self.params['activation'],
-                    kernel_regularizer=l2(self.params['weight_decay']),
-                    use_bias=True
-                )
-            )
-        
-        # Output Layer
-        model.add(Dense(units=1, activation=self.params['output_activation'], use_bias=True))
-
-        # Sets the Loss Function, the Optimizer (Stochastic Gradient Descent) and the Metrics used for evaluation
-        model.compile(
-            loss='binary_crossentropy',
-            optimizer=SGD(
-                learning_rate=self.params['learning_rate'],
-                momentum=self.params['momentum'],
-                nesterov=True
-            ),
-            metrics=[self.params['metrics']]
-        )
-
-        # Saving the model
-        self.model = model
-
-        return self.model
+        return self.layers(x)
 
     
     def fit(self, x_train, y_train, x_val=None, y_val=None):
@@ -198,79 +262,127 @@ class BinaryNN():
             - y_val: a NumPy Mx1 labels used for Validation.
         '''
 
-        # Error case
-        if self.model is None:
-            raise ValueError
-        
-        # Training of the model with only TR set
-        if x_val is None and y_val is None:
-            self.history = self.model.fit(
-                x=x_train,
-                y=y_train,
-                epochs=self.params['epochs'],
-                batch_size=self.params['batch_size'],
-                validation_split=0.2,
-                callbacks=[EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)],
-                verbose=0,
-                shuffle=True
-            )
-        
-        # Training of the model with TR set and VL set (already splitted)
-        elif x_val is not None and y_val is not None:
-            self.history = self.model.fit(
-                x=x_train,
-                y=y_train,
-                epochs=self.params['epochs'],
-                batch_size=self.params['batch_size'],
-                validation_data=(x_val, y_val),
-                callbacks=[EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)],
-                verbose=0,
-                shuffle=True
-            )
-        
-        # Error case
-        else:
-            raise ValueError
+        train_dataset = MyDataset(
+            torch.from_numpy(x_train).to(dtype=torch.float32),
+            torch.from_numpy(y_train).to(dtype=torch.float32)
+        )
+        train_data = DataLoader(dataset=train_dataset, batch_size=int(self.params['batch_size']), shuffle=True)
 
-        # Returns the history
-        return self.history
-    
-
-    def evaluate(self, x_train, y_train, x_val=None, y_val=None):
-        '''
-            Evaluates the model on the Training set passed as parameter and returns a tuple of the following format: \
-            (tr_loss, tr_accuracy, vl_loss, vl_accuracy)\n
-            - x_train: a NumPy array MxN dataset used for Training.\n
-            - y_train: a NumPy array Mx1 labels used for Training.\n
-            - x_val: a NumPy array MxN dataset used for Validation.\n
-            - y_val: a NumPy array Mx1 labels used for Validation.
-        '''
-
-        # Error case
-        if self.history is None or self.model is None:
-            raise ValueError
-        
-        # Evaluation on TR set
-        tr_loss, tr_accuracy = self.model.evaluate(x=x_train, y=y_train, verbose=0)
-        self.mean_tr_accuracy = float((self.mean_tr_accuracy * self.k_fold_counter + tr_accuracy) / (self.k_fold_counter + 1))
-        self.mean_tr_loss = float((self.mean_tr_loss * self.k_fold_counter + tr_loss) / (self.k_fold_counter + 1))
-
-        # Evaluation on VL set
+        # Case of Retraining (Validation not necessary)
         if x_val is not None and y_val is not None:
-            vl_loss, vl_accuracy = self.model.evaluate(x=x_val, y=y_val, verbose=0)
-            self.mean_vl_accuracy = float((self.mean_vl_accuracy * self.k_fold_counter + vl_accuracy) / (self.k_fold_counter + 1))
-            self.mean_vl_loss = float((self.mean_vl_loss * self.k_fold_counter + vl_loss) / (self.k_fold_counter + 1))
-
-        # Update of the trials
-        self.k_fold_counter += 1
-
-        # Return in case of evaluation on TR and VL set
-        if x_val is not None and y_val is not None:
-            return (tr_loss, tr_accuracy, vl_loss, vl_accuracy)
-        
-        # Return in case of evaluation on TR set only
+            val_dataset = MyDataset(
+                torch.from_numpy(x_val).to(dtype=torch.float32),
+                torch.from_numpy(y_val).to(dtype=torch.float32)
+            )
+            val_data = DataLoader(dataset=val_dataset, batch_size=int(self.params['batch_size']), shuffle=True)
         else:
-            return (tr_loss, tr_accuracy)
+            val_dataset = None
+            val_data = None
+
+        # Epochs iteration
+        for epoch in range(self.params['epochs']):
+
+            # Batch iteration on TR set
+            for batch_x, batch_y in train_data:
+                
+                # Resets gradients
+                self.optimizer.zero_grad()
+
+                # Forward pass
+                tr_outputs: torch.Tensor = self(batch_x)
+
+                # Cases of squeeze
+                if tr_outputs.size() != torch.Size([1]):
+                    # Case of squeeze don't needed (because we obtain a scalar)
+                    if tr_outputs.size() == torch.Size([1,1]):
+                        tr_outputs = tr_outputs[0]
+                    # Case of squeeze don't needed (because we obtain a scalar)
+                    elif tr_outputs.size() == torch.Size([1,1,1]):
+                        tr_outputs = tr_outputs[0][0]
+                    # Case of squeeze needed
+                    else:
+                        tr_outputs = tr_outputs.squeeze()
+
+                # Compute Loss function
+                loss = self.criterion(tr_outputs, batch_y)
+
+                # Backward pass
+                loss.backward()
+                
+                # Optimization
+                self.optimizer.step()
+
+                # Predictions
+                batch_pred_y = torch.round(tr_outputs)
+                correct_batch_pred_y = sum(
+                    [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
+                )
+                
+                # Compute Accuracy and Loss
+                tr_accuracy = float(correct_batch_pred_y / len(batch_pred_y))
+                tr_loss     = loss.item()
+
+                # Updates the history
+                self.history['tr_accuracy'].append(tr_accuracy)
+                self.history['tr_loss'].append(tr_loss)
+
+                # Updates the mean of the Accuracy and the Loss on TR set
+                self.mean_tr_accuracy = float((self.mean_tr_accuracy * self.tr_batch_counter + tr_accuracy) / (self.tr_batch_counter+1))
+                self.mean_tr_loss     = float((self.mean_tr_loss * self.tr_batch_counter + tr_loss) / (self.tr_batch_counter+1))
+
+                self.tr_batch_counter += 1
+        
+            # Case of Retraining (Validation not necessary)
+            if val_data is None:
+                return self.mean_tr_accuracy, self.mean_tr_loss, self.mean_vl_accuracy, self.mean_vl_loss
+        
+            # Evaluation on VL set
+            with torch.no_grad():
+
+                # Batch iteration on VL set
+                for batch_x, batch_y in val_data:
+
+                    # Forward pass
+                    vl_outputs: torch.Tensor = self(batch_x)
+
+                    # Cases of squeeze
+                    if vl_outputs.size() != torch.Size([1]):
+                        # Case of squeeze don't needed (because we obtain a scalar)
+                        if vl_outputs.size() == torch.Size([1,1]):
+                            vl_outputs = vl_outputs[0]
+                        # Case of squeeze don't needed (because we obtain a scalar)
+                        elif vl_outputs.size() == torch.Size([1,1,1]):
+                            vl_outputs = vl_outputs[0][0]
+                        # Case of squeeze needed
+                        else:
+                            vl_outputs = vl_outputs.squeeze()
+
+                    # Compute Loss function
+                    loss = self.criterion(vl_outputs, batch_y)
+
+                    # Predictions
+                    batch_pred_y = torch.round(vl_outputs)
+                    correct_batch_pred_y = sum(
+                        [float(1) for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
+                    )
+                    
+                    # Compute Accuracy and Loss
+                    vl_accuracy = correct_batch_pred_y / len(batch_pred_y)
+                    vl_loss     = loss.item()
+
+                    # Update history
+                    self.history['vl_accuracy'].append(vl_accuracy)
+                    self.history['vl_loss'].append(vl_loss)
+
+                    # Updates the mean of the Accuracy and the Loss on TR set
+                    self.mean_vl_accuracy = float((self.mean_vl_accuracy * self.vl_batch_counter + vl_accuracy) / (self.vl_batch_counter+1))
+                    self.mean_vl_loss     = float((self.mean_vl_loss * self.vl_batch_counter + vl_loss) / (self.vl_batch_counter+1))
+
+                    self.vl_batch_counter += 1
+                        
+
+        # Returns the values computed
+        return self.mean_tr_accuracy, self.mean_tr_loss, self.mean_vl_accuracy, self.mean_vl_loss
 
 
     def test(self, x_test, y_test):
@@ -281,22 +393,62 @@ class BinaryNN():
             - y_test: a NumPy array Mx1 labels used for Testing.
         '''
 
-        # Error case
-        if self.model is None:
-            raise ValueError
-        
-        # Testing of the model
-        self.ts_loss, self.ts_accuracy = self.model.evaluate(
-            x=x_test,
-            y=y_test,
-            batch_size=self.params['batch_size'],
-            verbose=0
+        test_dataset = MyDataset(
+            torch.from_numpy(x_test).to(dtype=torch.float32),
+            torch.from_numpy(y_test).to(dtype=torch.float32)
         )
+        test_data = DataLoader(dataset=test_dataset, batch_size=int(self.params['batch_size']), shuffle=True)
+        
+        # Batch iteration on TS set
+        for batch_x, batch_y in test_data:
 
-        return (self.ts_loss, self.ts_accuracy)
+            # Forward pass
+            ts_outputs: torch.Tensor = self(batch_x)
+
+            # Cases of squeeze
+            if ts_outputs.size() != torch.Size([1]):
+                # Case of squeeze don't needed (because we obtain a scalar)
+                if ts_outputs.size() == torch.Size([1,1]):
+                    ts_outputs = ts_outputs[0]
+                # Case of squeeze don't needed (because we obtain a scalar)
+                elif ts_outputs.size() == torch.Size([1,1,1]):
+                    ts_outputs = ts_outputs[0][0]
+                # Case of squeeze needed
+                else:
+                    ts_outputs = ts_outputs.squeeze()
+
+            # Compute Loss function
+            loss = self.criterion(ts_outputs, batch_y)
+            
+            # Optimization
+            self.optimizer.step()
+
+            # Predictions
+            batch_pred_y = torch.round(ts_outputs)
+            correct_batch_pred_y = sum(
+                [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
+            )
+            self.y_true = self.y_true + batch_y
+            self.y_predictions = self.y_predictions + batch_pred_y
+            
+            # Compute Accuracy and Loss
+            ts_accuracy = float(correct_batch_pred_y / len(batch_pred_y))
+            ts_loss     = loss.item()
+
+            # Updates the history
+            self.history['ts_accuracy'].append(ts_accuracy)
+            self.history['ts_loss'].append(ts_loss)
+
+            # Updates the mean of the Accuracy and the Loss on TR set
+            self.mean_ts_accuracy = float((self.mean_ts_accuracy * self.ts_batch_counter + ts_accuracy) / (self.ts_batch_counter+1))
+            self.mean_ts_loss     = float((self.mean_ts_loss * self.ts_batch_counter + ts_loss) / (self.ts_batch_counter+1))
+
+            self.ts_batch_counter += 1
+    
+        return self.ts_loss, self.ts_accuracy
 
     
-    def score(self, x_test, y_test):
+    def score(self):
         '''
             Evaluates the model computing the Beta1-score and the Beta2-score based on the Test set passed as parameter. \
             Returns a tuple of the following format: \
@@ -305,28 +457,14 @@ class BinaryNN():
             - y_test: a NumPy array Mx1 labels used for Testing.
         '''
 
-        # Error case
-        if self.model is None:
-            raise ValueError
-        
-        # Predictions probability of the model
-        y_predictions_prob = self.model.predict(
-            x=x_test,
-            batch_size=self.params['batch_size'],
-            verbose=0
-        )
-
-        # Converting the Probabilities into Categorized values
-        self.y_predictions = [round(prediction[0]) for prediction in y_predictions_prob]
-
         # Compute Precision and Recall
-        self.recall_score    = recall_score(y_true=y_test, y_pred=self.y_predictions)
-        self.precision_score = precision_score(y_true=y_test, y_pred=self.y_predictions)
+        self.recall_score    = recall_score(y_true=self.y_true, y_pred=self.y_predictions)
+        self.precision_score = precision_score(y_true=self.y_true, y_pred=self.y_predictions)
 
         # Compute the f1-score and f2-score
-        self.f1_score = fbeta_score(y_true=y_test, y_pred=self.y_predictions, beta=1)
-        self.f2_score = fbeta_score(y_true=y_test, y_pred=self.y_predictions, beta=2)
+        self.f1_score = fbeta_score(y_true=self.y_true, y_pred=self.y_predictions, beta=1)
+        self.f2_score = fbeta_score(y_true=self.y_true, y_pred=self.y_predictions, beta=2)
 
-        return (self.f1_score, self.f2_score)
+        return self.f1_score, self.f2_score
 
 
