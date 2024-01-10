@@ -54,7 +54,7 @@ class BinaryNN(nn.Module):
         self.trial = trial
 
         # Default's values initializations
-        self.history: dict[list] = {'tr_accuracy':[], 'vl_accuracy':[], 'tr_loss':[], 'vl_loss':[]}
+        self.history: dict[list] = {'tr_accuracy':[], 'vl_accuracy':[], 'tr_loss':[], 'vl_loss':[], 'ts_accuracy':[]}
         self.mean_tr_accuracy    = 0
         self.mean_vl_accuracy    = 0
         self.ts_accuracy         = 0
@@ -68,8 +68,10 @@ class BinaryNN(nn.Module):
         self.f2_score            = 0
         self.recall_score        = 0
         self.precision_score     = 0
-        self.y_predictions: torch.Tensor = 
-        self.y_true: torch.Tensor = 
+        self.tolerance           = 0.001
+        self.patience            = 10
+        self.y_predictions: torch.Tensor = None
+        self.y_true:        torch.Tensor = None
 
         # Error case 
         if n_hidden_layers < 0: 
@@ -278,6 +280,9 @@ class BinaryNN(nn.Module):
         else:
             val_dataset = None
             val_data = None
+        
+        # Counter for Early Stopping
+        counter = 0
 
         # Epochs iteration
         for epoch in range(self.params['epochs']):
@@ -339,6 +344,9 @@ class BinaryNN(nn.Module):
             # Evaluation on VL set
             with torch.no_grad():
 
+                # Previous Mean Loss on VL set
+                prev_mean_vl_loss = 0
+
                 # Batch iteration on VL set
                 for batch_x, batch_y in val_data:
 
@@ -379,6 +387,18 @@ class BinaryNN(nn.Module):
                     self.mean_vl_loss     = float((self.mean_vl_loss * self.vl_batch_counter + vl_loss) / (self.vl_batch_counter+1))
 
                     self.vl_batch_counter += 1
+                
+                # Check for Early Stopping counter's update
+                if (self.mean_vl_loss - prev_mean_vl_loss) < self.tolerance:
+                    counter += 1
+                else:
+                    counter = 0
+
+                # Case of exit caused by Early Stopping
+                if counter == self.patience:
+                    break
+
+                prev_mean_vl_loss = self.mean_vl_loss
                         
 
         # Returns the values computed
@@ -428,8 +448,20 @@ class BinaryNN(nn.Module):
             correct_batch_pred_y = sum(
                 [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
             )
-            self.y_true = self.y_true + batch_y
-            self.y_predictions = self.y_predictions + batch_pred_y
+
+            # Case of first assignment
+            if self.y_true == None:
+                self.y_true = batch_y
+            # Case of concatenation of tensors
+            else:
+                self.y_true = self.y_true + batch_y
+            
+            # Case of first assignment
+            if self.y_predictions == None:
+                self.y_predictions = batch_pred_y
+            # Case of concatenation of tensors
+            else:
+                self.y_predictions = self.y_predictions + batch_pred_y
             
             # Compute Accuracy and Loss
             ts_accuracy = float(correct_batch_pred_y / len(batch_pred_y))
