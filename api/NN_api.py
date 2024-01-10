@@ -4,6 +4,7 @@ from keras import Model, Sequential
 from keras.optimizers import SGD
 from keras.layers import Dense
 from keras.regularizers import l2
+from keras.initializers import glorot_normal, he_uniform, he_normal, lecun_normal
 from keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
@@ -233,7 +234,7 @@ class BinaryNN():
 
         # Hidden Layers
         for _ in range(n_hidden_layers):
-            model.add(Dense(units=self.params['hidden_units'], activation=self.params['activation'], use_bias=True, kernel_regularizer=l2(self.params['weight_decay'])))
+            model.add(Dense(units=self.params['hidden_units'], activation=self.params['activation'], use_bias=True, kernel_regularizer=l2(self.params['weight_decay']), kernel_initializer=self.params['weight_init']))
         
         # Output Layer
         model.add(Dense(units=1, activation=self.params['output_activation'], use_bias=True))
