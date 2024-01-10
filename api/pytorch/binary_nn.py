@@ -390,12 +390,14 @@ class BinaryNN(nn.Module):
                 
                 # Check for Early Stopping counter's update
                 if (self.mean_vl_loss - prev_mean_vl_loss) < self.tolerance:
+                    print(counter)
                     counter += 1
                 else:
                     counter = 0
 
                 # Case of exit caused by Early Stopping
                 if counter == self.patience:
+                    print(f'Early Stopping:\n\tpatience={self.patience} == counter={counter}\n\tmean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss}')
                     break
 
                 prev_mean_vl_loss = self.mean_vl_loss
