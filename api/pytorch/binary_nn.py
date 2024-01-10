@@ -3,6 +3,7 @@ from torch import nn
 from torch import optim
 from torch.utils.data import TensorDataset, DataLoader
 import matplotlib.pyplot as plt
+import copy
 import pandas as pd
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import fbeta_score
@@ -284,6 +285,9 @@ class BinaryNN(nn.Module):
         # Counter for Early Stopping
         counter = 0
 
+        # Save initial model weights
+        initial_weights = copy.deepcopy(self.state_dict())
+
         # Epochs iteration
         for epoch in range(self.params['epochs']):
 
@@ -395,11 +399,11 @@ class BinaryNN(nn.Module):
                 else:
                     counter = 0
 
-                # Case of exit caused by Early Stopping
                 if counter == self.patience:
                     print(f'Early Stopping:\n\tpatience={self.patience} == counter={counter}\n\tmean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss}')
+                    # Restore model weights to the initial state
+                    self.load_state_dict(initial_weights)
                     break
-
                 prev_mean_vl_loss = self.mean_vl_loss
                         
 
