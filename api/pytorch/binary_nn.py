@@ -179,11 +179,11 @@ class BinaryNN(nn.Module):
             if isinstance(module, nn.Linear):
                 if(self.params["weight_init"] == "glorot_uniform"):
                     nn.init.xavier_uniform_(module.weight)
-                elif(self.params["weight_unit"] == "glorot_normal"):
+                elif(self.params["weight_init"] == "glorot_normal"):
                     nn.init.xavier_normal_(module.weight)
-                elif(self.params["weight_unit"] == "he_normal"):
+                elif(self.params["weight_init"] == "he_normal"):
                     nn.init.kaiming_normal_(module.weight)
-                elif(self.params["weight_unit"] == "he_uniform"):
+                elif(self.params["weight_init"] == "he_uniform"):
                     nn.init.kaiming_uniform_(module.weight)
                 nn.init.zeros_(module.bias)
 
