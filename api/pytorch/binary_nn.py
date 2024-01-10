@@ -56,6 +56,7 @@ class BinaryNN(nn.Module):
 
         # Default's values initializations
         self.history: dict[list] = {'tr_accuracy':[], 'vl_accuracy':[], 'tr_loss':[], 'vl_loss':[], 'ts_accuracy':[], 'ts_loss':[]}
+        self.mean_ts_accuracy    = 0
         self.mean_tr_accuracy    = 0
         self.mean_vl_accuracy    = 0
         self.ts_accuracy         = 0
