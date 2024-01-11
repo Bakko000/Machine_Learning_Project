@@ -191,7 +191,7 @@ class BinaryNN():
         return self.model
 
     
-    def train(self, x_train, y_train, x_val=None, y_val=None):
+    def fit(self, x_train, y_train):
         '''
             Train the model based on the data passed as parameters and returns the history.\n
             - x_train: a NumPy array MxN dataset used for Training.\n
@@ -205,24 +205,11 @@ class BinaryNN():
             raise ValueError
         
         # Training of the model with only TR set
-        if x_val is None and y_val is None:
-            self.model.set_params(validation_fraction=0.0)
-            self.history = self.model.fit(
-                x=x_train,  
-                y=y_train
+        self.model.set_params(validation_fraction=0.0)
+        self.history = self.model.fit(
+            x=x_train,  
+            y=y_train
             )
-        
-        # Training of the model with TR set and VL set (already splitted)
-        elif x_val is not None and y_val is not None:
-            self.model.set_params(validation_fraction=0.2)
-            self.history = self.model.fit(
-                x=x_train,
-                y=y_train
-            )
-        
-        # Error case
-        else:
-            raise ValueError
 
         # Returns the history
         return self.history
