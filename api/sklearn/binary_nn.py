@@ -191,7 +191,7 @@ class BinaryNN():
         return self.model
 
     
-    def fit(self, x_train, y_train, x_val=None, y_val=None):
+    def train(self, x_train, y_train, x_val=None, y_val=None):
         '''
             Train the model based on the data passed as parameters and returns the history.\n
             - x_train: a NumPy array MxN dataset used for Training.\n
