@@ -185,7 +185,7 @@ class BinaryNN():
 
         # Sets the Loss Function, the Optimizer (Stochastic Gradient Descent) and the Metrics used for evaluation
         model.compile(
-            loss='binary_crossentropy',
+            loss='mean_squared_error',
             optimizer=SGD(
                 learning_rate=lr_schedule,
                 momentum=self.params['momentum'],
