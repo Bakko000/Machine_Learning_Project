@@ -11,13 +11,15 @@ from sklearn.metrics import fbeta_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import roc_curve, auc 
+from sklearn.base import BaseEstimator, ClassifierMixin
 
 
 
 
 
 
-class BinaryNN():
+
+class BinaryNN(BaseEstimator, ClassifierMixin):
     '''
         Class which offers methods to handle Neural Networks for Binary Classification tasks with at least 3 layers \
         (input, hidden and output) based on a dictionary of associations <hyperparameter_key,hyperparameter_value> \
@@ -66,6 +68,12 @@ class BinaryNN():
             f" Prediction score:         {self.precision_score}\n" + \
             f" Recall score:             {self.recall_score}\n"
     
+
+
+    def get_params(self, deep=True):
+        # Return the parameters of your estimator as a dictionary
+        # Make sure to include all hyperparameters that affect the model
+        return self.params
 
     def print_plot(self):
         '''
