@@ -3,6 +3,7 @@ from keras.optimizers import SGD
 from keras.layers import Dense
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
+from keras.optimizers.schedules import PolynomialDecay
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.metrics import confusion_matrix
@@ -171,12 +172,22 @@ class BinaryNN():
         
         # Output Layer
         model.add(Dense(units=1, activation=self.params['output_activation'], use_bias=True))
+        
+        # Lr decay
+        lr_schedule = PolynomialDecay(
+                initial_learning_rate=self.params['learning_rate'],
+                decay_steps=self.params['step_decay'],
+                end_learning_rate=0.0001,
+                power=self.params['factor_lr_dec'],
+                cycle=False,
+                name="PolynomialDecay",
+            )
 
         # Sets the Loss Function, the Optimizer (Stochastic Gradient Descent) and the Metrics used for evaluation
         model.compile(
             loss='binary_crossentropy',
             optimizer=SGD(
-                learning_rate=self.params['learning_rate'],
+                learning_rate=lr_schedule,
                 momentum=self.params['momentum'],
                 nesterov=True
             ),
