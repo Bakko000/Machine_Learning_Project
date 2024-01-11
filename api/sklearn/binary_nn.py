@@ -5,6 +5,7 @@ from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 import pandas as pd
+from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import fbeta_score
 from sklearn.metrics import recall_score
@@ -143,48 +144,49 @@ class BinaryNN():
 
     def create_model(self, n_hidden_layers: int) -> Model:
         '''
-            Returns a Sequential Keras model with "n_hidden_layers" layers (input, hidden, output) created with the parameters \
+            Returns a sklearn model with "n_hidden_layers" layers (input, hidden, output) created with the parameters \
             passed to the object. Returns the model created.\n
             - n_hidden_layers: number of hidden layers (bigger than 0).
         '''
 
-        # Error case
         if n_hidden_layers < 0:
-            raise ValueError
+            raise ValueError("Number of hidden layers must be non-negative.")
 
-        # Build the sequential model
-        model = Sequential()
-
-        # Input Layer
-        model.add(Dense(units=self.params['input_units'], activation=self.params['activation'], use_bias=True))
-
-        # Hidden Layers
-        for _ in range(n_hidden_layers):
-            model.add(
-                Dense(
-                    units=self.params['hidden_units'],
-                    activation=self.params['activation'],
-                    kernel_regularizer=l2(self.params['weight_decay']),
-                    use_bias=True
-                )
-            )
-        
-        # Output Layer
-        model.add(Dense(units=1, activation=self.params['output_activation'], use_bias=True))
-
-        # Sets the Loss Function, the Optimizer (Stochastic Gradient Descent) and the Metrics used for evaluation
-        model.compile(
-            loss='binary_crossentropy',
-            optimizer=SGD(
-                learning_rate=self.params['learning_rate'],
+        if n_hidden_layers == 0:
+            # Single-layer perceptron (no hidden layers)
+            self.model = MLPClassifier(
+                hidden_layer_sizes=(),
+                #??????????????????activation=self.params['input_activation'],
+                alpha=self.params['weight_decay'],
+                learning_rate_init=self.params['learning_rate'],
                 momentum=self.params['momentum'],
-                nesterov=True
-            ),
-            metrics=[self.params['metrics']]
-        )
+                solver='sgd',
+                early_stopping=True, 
+                nesterovs_momentum=True,
+                max_iter=self.params['epochs'],  # Number of epochs
+                batch_size=self.params["batch_size"], 
+                tol=1e-4,         # Tolerance to control the improvement in the val loss
+                n_iter_no_change=10  # patience
+            )
+        else:
+            # Create a list to hold the hidden layer sizes
+            hidden_layer_sizes = [self.params['hidden_units']] * n_hidden_layers
 
-        # Saving the model
-        self.model = model
+            # Build the MLPClassifier model with hidden layers
+            self.model = MLPClassifier(
+                hidden_layer_sizes=hidden_layer_sizes,
+                activation=self.params['hidden_activation'],
+                alpha=self.params['weight_decay'],
+                learning_rate_init=self.params['learning_rate'],
+                momentum=self.params['momentum'],
+                solver='sgd',
+                early_stopping=True, 
+                nesterovs_momentum=True,
+                max_iter=self.params['epochs'],  # Number of epochs
+                batch_size=self.params["batch_size"], 
+                tol=1e-4,         # Tolerance to control the improvement in the val loss
+                n_iter_no_change=10  # patience
+            )
 
         return self.model
 
@@ -204,28 +206,18 @@ class BinaryNN():
         
         # Training of the model with only TR set
         if x_val is None and y_val is None:
+            self.model.set_params(validation_fraction=0.0)
             self.history = self.model.fit(
-                x=x_train,
-                y=y_train,
-                epochs=self.params['epochs'],
-                batch_size=self.params['batch_size'],
-                validation_split=0.2,
-                callbacks=[EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)],
-                verbose=0,
-                shuffle=True
+                x=x_train,  
+                y=y_train
             )
         
         # Training of the model with TR set and VL set (already splitted)
         elif x_val is not None and y_val is not None:
+            self.model.set_params(validation_fraction=0.2)
             self.history = self.model.fit(
                 x=x_train,
-                y=y_train,
-                epochs=self.params['epochs'],
-                batch_size=self.params['batch_size'],
-                validation_data=(x_val, y_val),
-                callbacks=[EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)],
-                verbose=0,
-                shuffle=True
+                y=y_train
             )
         
         # Error case
