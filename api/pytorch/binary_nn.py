@@ -71,8 +71,8 @@ class BinaryNN(nn.Module):
         self.f2_score            = 0
         self.recall_score        = 0
         self.precision_score     = 0
-        self.tolerance           = 0.001
-        self.patience            = 10
+        self.tolerance           = 0.1
+        self.patience            = 5
         self.y_predictions: torch.Tensor = None
         self.y_true:        torch.Tensor = None
 
@@ -251,7 +251,7 @@ class BinaryNN(nn.Module):
         # Prints the Confusion Matrix as a DataFrame (alternative: tn, fp, fn, tp = confusion_matrix(y_true=y_test, y_pred=y_predictions).ravel())
         print(
             pd.DataFrame(
-                data=confusion_matrix(y_true=y_test, y_pred=self.y_predictions),
+                data=confusion_matrix(y_true=y_test, y_pred=self.y_predictions.detach().numpy()),
                 index=['Real_Class_0', 'Real_Class_1'],
                 columns=['Predicted_Class_0', 'Predicted_Class_1']
             )
@@ -340,15 +340,15 @@ class BinaryNN(nn.Module):
                 tr_accuracy = float(correct_batch_pred_y / len(batch_pred_y))
                 tr_loss     = loss.item()
 
-                # Updates the history
-                self.history['tr_accuracy'].append(tr_accuracy)
-                self.history['tr_loss'].append(tr_loss)
-
                 # Updates the mean of the Accuracy and the Loss on TR set
                 self.mean_tr_accuracy = float((self.mean_tr_accuracy * self.tr_batch_counter + tr_accuracy) / (self.tr_batch_counter+1))
                 self.mean_tr_loss     = float((self.mean_tr_loss * self.tr_batch_counter + tr_loss) / (self.tr_batch_counter+1))
 
                 self.tr_batch_counter += 1
+            
+            # Updates the history
+            self.history['tr_accuracy'].append(tr_accuracy)
+            self.history['tr_loss'].append(tr_loss)
         
             # Case of Retraining (Validation not necessary)
             if val_data is None:
@@ -391,10 +391,6 @@ class BinaryNN(nn.Module):
                     vl_accuracy = correct_batch_pred_y / len(batch_pred_y)
                     vl_loss     = loss.item()
 
-                    # Update history
-                    self.history['vl_accuracy'].append(vl_accuracy)
-                    self.history['vl_loss'].append(vl_loss)
-
                     # Updates the mean of the Accuracy and the Loss on TR set
                     self.mean_vl_accuracy = float((self.mean_vl_accuracy * self.vl_batch_counter + vl_accuracy) / (self.vl_batch_counter+1))
                     self.mean_vl_loss     = float((self.mean_vl_loss * self.vl_batch_counter + vl_loss) / (self.vl_batch_counter+1))
@@ -403,17 +399,26 @@ class BinaryNN(nn.Module):
                 
                 # Check for Early Stopping counter's update
                 if (self.mean_vl_loss - prev_mean_vl_loss) < self.tolerance:
-                    print(counter)
+                    print("counter >>> " + str(counter))
                     counter += 1
                 else:
                     counter = 0
 
                 if counter == self.patience:
-                    print(f'Early Stopping:\n\tpatience={self.patience} == counter={counter}\n\tmean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss}')
+                    print(
+                        f'Early Stopping:\n\
+                        \tpatience={self.patience} == counter={counter}\n\
+                        \tmean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss}'
+                    )
                     # Restore model weights to the initial state
                     self.load_state_dict(initial_weights)
                     break
+                
                 prev_mean_vl_loss = self.mean_vl_loss
+            
+            # Update history
+            self.history['vl_accuracy'].append(vl_accuracy)
+            self.history['vl_loss'].append(vl_loss)
                         
 
         # Returns the values computed
@@ -469,14 +474,14 @@ class BinaryNN(nn.Module):
                 self.y_true = batch_y
             # Case of concatenation of tensors
             else:
-                self.y_true = self.y_true + batch_y
+                self.y_true = torch.concat([self.y_true, batch_y], dim=0)
             
             # Case of first assignment
             if self.y_predictions == None:
                 self.y_predictions = batch_pred_y
             # Case of concatenation of tensors
             else:
-                self.y_predictions = self.y_predictions + batch_pred_y
+                self.y_predictions = torch.concat([self.y_predictions, batch_pred_y], dim=0)
             
             # Compute Accuracy and Loss
             ts_accuracy = float(correct_batch_pred_y / len(batch_pred_y))
@@ -505,12 +510,12 @@ class BinaryNN(nn.Module):
         '''
 
         # Compute Precision and Recall
-        self.recall_score    = recall_score(y_true=self.y_true, y_pred=self.y_predictions)
-        self.precision_score = precision_score(y_true=self.y_true, y_pred=self.y_predictions)
+        self.recall_score    = recall_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_predictions.detach().numpy())
+        self.precision_score = precision_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_predictions.detach().numpy())
 
         # Compute the f1-score and f2-score
-        self.f1_score = fbeta_score(y_true=self.y_true, y_pred=self.y_predictions, beta=1)
-        self.f2_score = fbeta_score(y_true=self.y_true, y_pred=self.y_predictions, beta=2)
+        self.f1_score = fbeta_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_predictions.detach().numpy(), beta=1)
+        self.f2_score = fbeta_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_predictions.detach().numpy(), beta=2)
 
         return self.f1_score, self.f2_score
 
