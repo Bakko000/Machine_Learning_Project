@@ -165,7 +165,7 @@ class BinaryNN():
                 Dense(
                     units=self.params['hidden_units'],
                     activation=self.params['activation'],
-                    kernel_regularizer=l2(self.params['weight_decay']),
+                    kernel_regularizer=l2(self.params['weight_decay']) if 'weight_decay' in self.params else None,
                     use_bias=True
                 )
             )
