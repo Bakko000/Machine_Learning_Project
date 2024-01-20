@@ -235,7 +235,7 @@ class BinaryNN():
                 epochs=self.params['epochs'],
                 batch_size=self.params['batch_size'],
                 validation_data=(x_val, y_val),
-                callbacks=[EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)],
+                callbacks=[EarlyStopping(monitor='val_loss', patience=self.params["patience"], restore_best_weights=True)],
                 verbose=0,
                 shuffle=True
             )
