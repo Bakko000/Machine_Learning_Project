@@ -173,21 +173,22 @@ class BinaryNN():
         # Output Layer
         model.add(Dense(units=1, activation=self.params['output_activation'], use_bias=True))
         
-        # Lr decay
-        lr_schedule = PolynomialDecay(
-                initial_learning_rate=self.params['learning_rate'],
-                decay_steps=self.params['step_decay'],
-                end_learning_rate=0.0001,
-                power=self.params['factor_lr_dec'],
-                cycle=False,
-                name="PolynomialDecay",
-            )
+        if('step_decay' in self.params):
+          # Lr decay
+          lr_schedule = PolynomialDecay(
+                  initial_learning_rate=self.params['learning_rate'],
+                  decay_steps=self.params['step_decay'],
+                  end_learning_rate=0.0001,
+                  power=self.params['factor_lr_dec'],
+                  cycle=False,
+                  name="PolynomialDecay",
+              )
 
         # Sets the Loss Function, the Optimizer (Stochastic Gradient Descent) and the Metrics used for evaluation
         model.compile(
             loss='mean_squared_error',
             optimizer=SGD(
-                learning_rate=lr_schedule,
+                learning_rate=lr_schedule if 'factor_lr_dec' in self.params else self.params['learning_rate'],
                 momentum=self.params['momentum'],
                 nesterov=True
             ),
