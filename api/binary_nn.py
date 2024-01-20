@@ -80,9 +80,14 @@ class BinaryNN():
         plt.figure()
         plt.plot(self.history.history['loss'], label='Training Loss')
         plt.plot(self.history.history['val_loss'], label='Validation Loss')
+        plt.title('Learning Curve')
+        plt.xlabel('Epoch')
+        plt.legend()
+
+        plt.figure()
         plt.plot(self.history.history['accuracy'], label='Training Accuracy')
         plt.plot(self.history.history['val_accuracy'], label='Validation Accuracy')
-        plt.title('Learning Curve')
+        plt.title('Model Accuracy')
         plt.xlabel('Epoch')
         plt.legend()
     
