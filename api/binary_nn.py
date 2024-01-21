@@ -200,7 +200,7 @@ class BinaryNN():
             optimizer=SGD(
                 learning_rate=lr_schedule if 'factor_lr_dec' in self.params else self.params['learning_rate'],
                 momentum=self.params['momentum'],
-                #nesterov=True
+                nesterov=True if self.params["nesterov"] == "T" else False
             ),
             metrics=[self.params['metrics']]
         )
