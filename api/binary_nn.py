@@ -10,7 +10,8 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import fbeta_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import precision_score
-from sklearn.metrics import roc_curve, auc 
+from sklearn.metrics import roc_curve, auc
+from keras.initializers import RandomUniform
 
 
 
@@ -171,6 +172,7 @@ class BinaryNN():
                     units=self.params['hidden_units'],
                     activation=self.params['activation'],
                     kernel_regularizer=l2(self.params['weight_decay']) if 'weight_decay' in self.params else None,
+                    kernel_initializer=RandomUniform(minval=-0.07, maxval=0.07),
                     use_bias=True
                 )
             )
