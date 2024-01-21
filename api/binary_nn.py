@@ -63,7 +63,7 @@ class BinaryNN():
             f" Test Accuracy:            {self.ts_accuracy}\n" + \
             f" f1 score:                 {self.f1_score}\n" + \
             f" f2 score:                 {self.f2_score}\n" + \
-            f" Prediction score:         {self.precision_score}\n" + \
+            f" Precision score:         {self.precision_score}\n" + \
             f" Recall score:             {self.recall_score}\n"
     
 
@@ -79,14 +79,14 @@ class BinaryNN():
         # Print of the Plot
         plt.figure()
         plt.plot(self.history.history['loss'], label='Training Loss')
-        plt.plot(self.history.history['val_loss'], label='Validation Loss')
+        plt.plot(self.history.history['val_loss'], label='Validation Loss', linestyle='--')
         plt.title('Learning Curve')
         plt.xlabel('Epoch')
         plt.legend()
 
         plt.figure()
         plt.plot(self.history.history['accuracy'], label='Training Accuracy')
-        plt.plot(self.history.history['val_accuracy'], label='Validation Accuracy')
+        plt.plot(self.history.history['val_accuracy'], label='Validation Accuracy', linestyle='--')
         plt.title('Model Accuracy')
         plt.xlabel('Epoch')
         plt.legend()
