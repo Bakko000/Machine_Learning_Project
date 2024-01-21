@@ -71,8 +71,8 @@ class BinaryNN(nn.Module):
         self.f2_score            = 0
         self.recall_score        = 0
         self.precision_score     = 0
-        self.tolerance           = 0.1
-        self.patience            = 5
+        self.tolerance           = 0.01
+        self.patience            = 10
         self.y_predictions: torch.Tensor = None
         self.y_true:        torch.Tensor = None
 
@@ -162,10 +162,10 @@ class BinaryNN(nn.Module):
             f" Hyperparameters:          {self.params}\n" + \
             f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
             f" Mean Validation Loss:     {self.mean_vl_loss}\n" + \
-            f" Test Loss:                {self.ts_loss}\n" + \
+            f" Test Loss:                {self.mean_ts_loss}\n" + \
             f" Mean Training Accuracy:   {self.mean_tr_accuracy}\n" + \
             f" Mean Validation Accuracy: {self.mean_vl_accuracy}\n" + \
-            f" Test Accuracy:            {self.ts_accuracy}\n" + \
+            f" Test Accuracy:            {self.mean_ts_accuracy}\n" + \
             f" f1 score:                 {self.f1_score}\n" + \
             f" f2 score:                 {self.f2_score}\n" + \
             f" Prediction score:         {self.precision_score}\n" + \
@@ -196,10 +196,9 @@ class BinaryNN(nn.Module):
         plt.figure()
         plt.plot(self.history['tr_loss'], label='Training Loss')
         plt.plot(self.history['vl_loss'], label='Validation Loss')
-        plt.plot(self.history['tr_accuracy'], label='Training Accuracy')
-        plt.plot(self.history['vl_accuracy'], label='Validation Accuracy')
         plt.title('Learning Curve')
         plt.xlabel('Epoch')
+        plt.ylabel('Loss')
         plt.legend()
     
 
@@ -208,7 +207,10 @@ class BinaryNN(nn.Module):
             Prints the ROC curve graphic.
         '''
         # Calculate the ROC curve 
-        fpr, tpr, thresholds = roc_curve(y_test, self.y_predictions) 
+        fpr, tpr, thresholds = roc_curve(
+            self.y_true.detach().numpy(),
+            self.y_predictions.detach().numpy()
+        ) 
         
         # Calculate the Area Under the Curve (AUC) 
         roc_auc = auc(fpr, tpr) 
@@ -243,15 +245,11 @@ class BinaryNN(nn.Module):
         '''
             Prints the confusion matrix based on the predictions made during the Testing Phase.
         '''
-
-        # Error case
-        if self.y_predictions == []:
-            raise ValueError
         
         # Prints the Confusion Matrix as a DataFrame (alternative: tn, fp, fn, tp = confusion_matrix(y_true=y_test, y_pred=y_predictions).ravel())
         print(
             pd.DataFrame(
-                data=confusion_matrix(y_true=y_test, y_pred=self.y_predictions.detach().numpy()),
+                data=confusion_matrix(y_true=self.y_true.detach().numpy(), y_pred=self.y_predictions.detach().numpy()),
                 index=['Real_Class_0', 'Real_Class_1'],
                 columns=['Predicted_Class_0', 'Predicted_Class_1']
             )
@@ -408,7 +406,7 @@ class BinaryNN(nn.Module):
                     print(
                         f'Early Stopping:\n\
                         \tpatience={self.patience} == counter={counter}\n\
-                        \tmean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss}'
+                        \tmean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss} < {self.tolerance}'
                     )
                     # Restore model weights to the initial state
                     self.load_state_dict(initial_weights)
@@ -432,6 +430,7 @@ class BinaryNN(nn.Module):
             - x_test: a NumPy array MxN dataset used for Testing.\n
             - y_test: a NumPy array Mx1 labels used for Testing.
         '''
+        #self.y_true = y_test
 
         test_dataset = MyDataset(
             torch.from_numpy(x_test).to(dtype=torch.float32),
@@ -468,6 +467,7 @@ class BinaryNN(nn.Module):
             correct_batch_pred_y = sum(
                 [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
             )
+            print("Current Batch true prediction: " + str(correct_batch_pred_y) + "/" + str(len(batch_pred_y)))
 
             # Case of first assignment
             if self.y_true == None:
@@ -497,7 +497,7 @@ class BinaryNN(nn.Module):
 
             self.ts_batch_counter += 1
     
-        return self.ts_loss, self.ts_accuracy
+        return self.mean_ts_loss, self.mean_ts_accuracy
 
     
     def score(self):
