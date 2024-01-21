@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch import optim
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import copy
 import pandas as pd
@@ -71,52 +71,21 @@ class BinaryNN(nn.Module):
         self.f2_score            = 0
         self.recall_score        = 0
         self.precision_score     = 0
-        self.tolerance           = 0.01
+        self.tolerance           = 0.05
         self.patience            = 10
-        self.y_predictions: torch.Tensor = None
-        self.y_true:        torch.Tensor = None
+        self.y_pred: torch.Tensor = None
+        self.y_true: torch.Tensor = None
 
         # Error case 
         if n_hidden_layers < 0: 
             raise ValueError 
-        
-        # Hidden activation function
-        if self.params['hidden_activation'] == 'Tanh':
-            activation = nn.ReLU()
-        elif self.params['hidden_activation'] == 'ReLU':
-            activation = nn.Tanh()
-        else:
-            raise ValueError
     
         # Input Layer
-        '''self.layers.append(
-            (
-                nn.Linear(self.params['input_size'], self.params['hidden_size']),
-                activation
-            )
-        )
-
-        # Hidden Layers
-        for _ in range(n_hidden_layers):
-            self.layers.append(
-                (
-                    nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
-                    activation
-                )
-            )
-        
-        # Output Layer
-        self.layers.append(
-            (
-                nn.Linear(self.params['hidden_size'], 1),
-                nn.Sigmoid()
-            )
-        )'''
         self.layers = nn.Sequential(
             nn.Linear(self.params['input_size'], self.params['hidden_size']),
-            activation,
+            nn.Tanh(),
             nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
-            activation,
+            nn.Tanh(),
             nn.Linear(self.params['hidden_size'], 1),
             nn.Sigmoid()
         )
@@ -129,30 +98,12 @@ class BinaryNN(nn.Module):
         self.criterion = nn.BCELoss()
         
         # Optimizers
-        if self.params['optimizer'] == 'SGD':
-            self.optimizer = optim.SGD(
-                self.parameters(),
-                lr=self.params['learning_rate'],
-                momentum=self.params['momentum'],
-                weight_decay=self.params['weight_decay'],
-                nesterov=True
-            )
-        elif self.params['optimizer'] == 'Adam':
-            self.optimizer = optim.Adam(
-                self.parameters(),
-                lr=self.params['learning_rate'],
-                #momentum=self.params['momentum'],
-                weight_decay=self.params['weight_decay']
-            )
-        elif self.params['optimizer'] == 'RMSprop':
-            self.optimizer = optim.RMSprop(
-                self.parameters(),
-                lr=self.params['learning_rate'],
-                momentum=self.params['momentum'],
-                weight_decay=self.params['weight_decay']
-            )
-        else:
-            raise ValueError
+        self.optimizer = optim.SGD(
+            self.parameters(),
+            lr=self.params['learning_rate'],
+            momentum=self.params['momentum'],
+            weight_decay=self.params['weight_decay']
+        )
 
     
     def __str__(self) -> str:
@@ -178,6 +129,8 @@ class BinaryNN(nn.Module):
         '''
         for module in self.modules():
             if isinstance(module, nn.Linear):
+                nn.init.uniform_(module.weight)
+                '''
                 if(self.params["weight_init"] == "glorot_uniform"):
                     nn.init.xavier_uniform_(module.weight)
                 elif(self.params["weight_init"] == "glorot_normal"):
@@ -187,6 +140,7 @@ class BinaryNN(nn.Module):
                 elif(self.params["weight_init"] == "he_uniform"):
                     nn.init.kaiming_uniform_(module.weight)
                 nn.init.zeros_(module.bias)
+                '''
 
 
     def print_plot(self):
@@ -195,7 +149,7 @@ class BinaryNN(nn.Module):
         '''
         plt.figure()
         plt.plot(self.history['tr_loss'], label='Training Loss')
-        plt.plot(self.history['vl_loss'], label='Validation Loss')
+        plt.plot(self.history['vl_loss'], label='Validation Loss', linestyle='--')
         plt.title('Learning Curve')
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
@@ -209,7 +163,7 @@ class BinaryNN(nn.Module):
         # Calculate the ROC curve 
         fpr, tpr, thresholds = roc_curve(
             self.y_true.detach().numpy(),
-            self.y_predictions.detach().numpy()
+            self.y_pred.detach().numpy()
         ) 
         
         # Calculate the Area Under the Curve (AUC) 
@@ -249,7 +203,7 @@ class BinaryNN(nn.Module):
         # Prints the Confusion Matrix as a DataFrame (alternative: tn, fp, fn, tp = confusion_matrix(y_true=y_test, y_pred=y_predictions).ravel())
         print(
             pd.DataFrame(
-                data=confusion_matrix(y_true=self.y_true.detach().numpy(), y_pred=self.y_predictions.detach().numpy()),
+                data=confusion_matrix(y_true=self.y_true.detach().numpy(), y_pred=self.y_pred.detach().numpy()),
                 index=['Real_Class_0', 'Real_Class_1'],
                 columns=['Predicted_Class_0', 'Predicted_Class_1']
             )
@@ -290,7 +244,7 @@ class BinaryNN(nn.Module):
             val_data = None
         
         # Counter for Early Stopping
-        counter = 0
+        earlystop_counter = 0
 
         # Save initial model weights
         initial_weights = copy.deepcopy(self.state_dict())
@@ -345,8 +299,8 @@ class BinaryNN(nn.Module):
                 self.tr_batch_counter += 1
             
             # Updates the history
-            self.history['tr_accuracy'].append(tr_accuracy)
-            self.history['tr_loss'].append(tr_loss)
+            self.history['tr_accuracy'].append(self.mean_tr_accuracy)
+            self.history['tr_loss'].append(self.mean_tr_loss)
         
             # Case of Retraining (Validation not necessary)
             if val_data is None:
@@ -384,7 +338,7 @@ class BinaryNN(nn.Module):
                     correct_batch_pred_y = sum(
                         [float(1) for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
                     )
-                    
+
                     # Compute Accuracy and Loss
                     vl_accuracy = correct_batch_pred_y / len(batch_pred_y)
                     vl_loss     = loss.item()
@@ -397,27 +351,27 @@ class BinaryNN(nn.Module):
                 
                 # Check for Early Stopping counter's update
                 if (self.mean_vl_loss - prev_mean_vl_loss) < self.tolerance:
-                    print("counter >>> " + str(counter))
-                    counter += 1
+                    print("counter >>> " + str(earlystop_counter))
+                    earlystop_counter += 1
                 else:
-                    counter = 0
+                    earlystop_counter = 0
 
-                if counter == self.patience:
+                # Case of exit caused by Early Stopping
+                if earlystop_counter == self.patience:
                     print(
                         f'Early Stopping:\n\
-                        \tpatience={self.patience} == counter={counter}\n\
+                        \tpatience={self.patience} == counter={earlystop_counter}\n\
                         \tmean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss} < {self.tolerance}'
                     )
                     # Restore model weights to the initial state
-                    self.load_state_dict(initial_weights)
+                    #self.load_state_dict(initial_weights)
                     break
                 
                 prev_mean_vl_loss = self.mean_vl_loss
             
             # Update history
-            self.history['vl_accuracy'].append(vl_accuracy)
-            self.history['vl_loss'].append(vl_loss)
-                        
+            self.history['vl_accuracy'].append(self.mean_vl_accuracy)
+            self.history['vl_loss'].append(self.mean_vl_loss)
 
         # Returns the values computed
         return self.mean_tr_accuracy, self.mean_tr_loss, self.mean_vl_accuracy, self.mean_vl_loss
@@ -430,7 +384,7 @@ class BinaryNN(nn.Module):
             - x_test: a NumPy array MxN dataset used for Testing.\n
             - y_test: a NumPy array Mx1 labels used for Testing.
         '''
-        #self.y_true = y_test
+        #self.y_true = torch.from_numpy(y_test).to(dtype=torch.float32)
 
         test_dataset = MyDataset(
             torch.from_numpy(x_test).to(dtype=torch.float32),
@@ -477,11 +431,11 @@ class BinaryNN(nn.Module):
                 self.y_true = torch.concat([self.y_true, batch_y], dim=0)
             
             # Case of first assignment
-            if self.y_predictions == None:
-                self.y_predictions = batch_pred_y
+            if self.y_pred == None:
+                self.y_pred = batch_pred_y
             # Case of concatenation of tensors
             else:
-                self.y_predictions = torch.concat([self.y_predictions, batch_pred_y], dim=0)
+                self.y_pred = torch.concat([self.y_pred, batch_pred_y], dim=0)
             
             # Compute Accuracy and Loss
             ts_accuracy = float(correct_batch_pred_y / len(batch_pred_y))
@@ -510,12 +464,12 @@ class BinaryNN(nn.Module):
         '''
 
         # Compute Precision and Recall
-        self.recall_score    = recall_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_predictions.detach().numpy())
-        self.precision_score = precision_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_predictions.detach().numpy())
+        self.recall_score    = recall_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_pred.detach().numpy())
+        self.precision_score = precision_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_pred.detach().numpy())
 
         # Compute the f1-score and f2-score
-        self.f1_score = fbeta_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_predictions.detach().numpy(), beta=1)
-        self.f2_score = fbeta_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_predictions.detach().numpy(), beta=2)
+        self.f1_score = fbeta_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_pred.detach().numpy(), beta=1)
+        self.f2_score = fbeta_score(y_true=self.y_true.detach().numpy(), y_pred=self.y_pred.detach().numpy(), beta=2)
 
         return self.f1_score, self.f2_score
 
