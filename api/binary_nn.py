@@ -163,7 +163,7 @@ class BinaryNN():
         model = Sequential()
 
         # Input Layer
-        model.add(Dense(units=17, activation="tanh", use_bias=True))
+        model.add(Dense(units=17))
 
         # Hidden Layers
         for _ in range(n_hidden_layers):
