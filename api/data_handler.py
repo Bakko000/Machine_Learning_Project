@@ -13,7 +13,7 @@ class DataHandler():
         self.columns_name = columns_name
 
 
-    def complete_search(self, param_space: dict) -> list:
+    def complete_search(self, param_space: dict) -> dict:
         '''
         Returns a list of dictionaries, each representing a complete set of parameters.
         - param_space: dictionary of associations with the following format:
