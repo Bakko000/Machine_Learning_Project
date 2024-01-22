@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import itertools
+
 
 
 
@@ -21,9 +23,11 @@ class DataHandler():
         '''
         params = {}
 
-        # Inserts of the keywords with the random values into the dictionary
-        for key in param_space.keys():
-            params[key] = param_space[key]
+            # Generate all possible combinations of parameter values
+        all_params = list(itertools.product(*param_space.values()))
+
+        # Create a dictionary for the first combination (you can iterate through all_params if needed)
+        params = dict(zip(param_space.keys(), all_params[0]))
 
         return params
 
