@@ -11,10 +11,6 @@ from sklearn.metrics import fbeta_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import roc_curve, auc
-from keras.initializers import glorot_normal
-from keras.initializers import he_normal
-from keras.initializers import he_uniform
-from keras.initializers import RandomNormal
 
 
 

@@ -12,10 +12,10 @@ class DataHandler():
         self.columns_name = columns_name
 
 
-    def random_dictionary(self, param_space: dict) -> dict:
+    def complete_dictionary(self, param_space: dict) -> dict:
         '''
             Returns a dictionary with the same keywords of the passed one, associated with a \
-            random value choosen by the list associated to any keyword.\n
+            each single value choosen by the list associated to any keyword.\n
             - param_space: dictionary of associations with the following format:\n
                 \t'keyword': [value1, ... ,valueN]
         '''
@@ -23,7 +23,7 @@ class DataHandler():
 
         # Inserts of the keywords with the random values into the dictionary
         for key in param_space.keys():
-            params[key] = np.random.choice(param_space[key])
+            params[key] = param_space[key]
 
         return params
 
