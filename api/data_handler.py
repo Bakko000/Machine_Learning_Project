@@ -22,12 +22,12 @@ class DataHandler():
         '''
         params = {}
 
-            # Generate all possible combinations of parameter values
+        # Generate all possible combinations of parameter values
         all_params = list(itertools.product(*param_space.values()))
 
-        for params_values in all_params:
-            params = dict(zip(param_space.keys(), params_values))
-        # Now 'params' contains a specific combination of parameters
+        # Iterate over the keys and assign the corresponding values
+        for i, key in enumerate(param_space.keys()):
+            params[key] = [param_values[i] for param_values in all_params]
 
         return params
 
