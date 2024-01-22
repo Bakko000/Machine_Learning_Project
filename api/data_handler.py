@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import itertools
+from itertools import product
 
 
 
@@ -13,23 +13,22 @@ class DataHandler():
         self.columns_name = columns_name
 
 
-    def complete_dictionary(self, param_space: dict) -> dict:
+    def complete_search(param_space: dict) -> list:
         '''
-            Returns a dictionary with the same keywords of the passed one, associated with a \
-            each single value choosen by the list associated to any keyword.\n
-            - param_space: dictionary of associations with the following format:\n
-                \t'keyword': [value1, ... ,valueN]
+        Returns a list of dictionaries, each representing a complete set of parameters.
+        - param_space: dictionary of associations with the following format:
+            'keyword': [value1, ..., valueN]
         '''
-        params = {}
+        keys = list(param_space.keys())
+        values_list = [param_space[key] for key in keys]
 
-        # Generate all possible combinations of parameter values
-        all_params = list(itertools.product(*param_space.values()))
+        # Generate all possible combinations of values
+        all_combinations = list(product(*values_list))
 
-        # Iterate over the keys and assign the corresponding values
-        for i, key in enumerate(param_space.keys()):
-            params[key] = [param_values[i] for param_values in all_params]
+        # Convert combinations to dictionaries
+        all_params = [dict(zip(keys, combination)) for combination in all_combinations]
 
-        return params
+        return all_params
 
 
     def load_data(self, path: str) -> pd.DataFrame:
