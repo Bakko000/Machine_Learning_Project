@@ -27,7 +27,7 @@ class DataHandler():
 
         # Iterate over the keys and assign the corresponding values
         for i, key in enumerate(param_space.keys()):
-            params[key] = [param_values[i] for param_values in all_params]
+            params[key] = [param_values[key] for param_values in all_params]
 
         return params
 
