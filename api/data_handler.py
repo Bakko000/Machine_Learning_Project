@@ -13,22 +13,20 @@ class DataHandler():
         self.columns_name = columns_name
 
 
-    def complete_search(self, param_space: dict) -> dict:
+    def random_dictionary(self, param_space: dict) -> dict:
         '''
-        Returns a list of dictionaries, each representing a complete set of parameters.
-        - param_space: dictionary of associations with the following format:
-            'keyword': [value1, ..., valueN]
+            Returns a dictionary with the same keywords of the passed one, associated with a \
+            random value choosen by the list associated to any keyword.\n
+            - param_space: dictionary of associations with the following format:\n
+                \t'keyword': [value1, ... ,valueN]
         '''
-        keys = list(param_space.keys())
-        values_list = [param_space[key] for key in keys]
+        params = {}
 
-        # Generate all possible combinations of values
-        all_combinations = list(product(*values_list))
+        # Inserts of the keywords with the random values into the dictionary
+        for key in param_space.keys():
+            params[key] = np.random.choice(param_space[key])
 
-        # Convert combinations to dictionaries
-        all_params = [dict(zip(keys, combination)) for combination in all_combinations]
-
-        return all_params
+        return params
 
 
     def load_data(self, path: str) -> pd.DataFrame:
