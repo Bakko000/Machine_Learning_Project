@@ -4,7 +4,6 @@ import itertools
 
 
 
-
 class DataHandler():
     '''
         Class which offers methods to handle DataFrames oriented to ML problems.
@@ -24,7 +23,11 @@ class DataHandler():
         params = {}
 
             # Generate all possible combinations of parameter values
-        params = itertools.product(*param_space.values())
+        all_params = list(itertools.product(*param_space.values()))
+
+        for params_values in all_params:
+            params = dict(zip(param_space.keys(), params_values))
+        # Now 'params' contains a specific combination of parameters
 
         return params
 
