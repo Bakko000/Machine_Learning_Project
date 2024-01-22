@@ -163,21 +163,21 @@ class BinaryNN():
         model = Sequential()
 
         # Input Layer
-        model.add(Dense(units=self.params['input_units'], activation=self.params['activation'], use_bias=True))
+        model.add(Dense(units=17, activation="tanh", use_bias=True))
 
         # Hidden Layers
         for _ in range(n_hidden_layers):
             model.add(
                 Dense(
                     units=self.params['hidden_units'],
-                    activation=self.params['activation'],
+                    activation="tanh",
                     kernel_regularizer=l2(self.params['weight_decay']) if 'weight_decay' in self.params else None,
                     use_bias=True
                 )
             )
         
         # Output Layer
-        model.add(Dense(units=1, activation=self.params['output_activation'], use_bias=True))
+        model.add(Dense(units=1, activation="sigmoid", use_bias=True))
         
         if('step_decay' in self.params):
           # Lr decay
@@ -198,7 +198,7 @@ class BinaryNN():
                 momentum=self.params['momentum'],
                 nesterov=True if self.params["nesterov"] == "T" else False
             ),
-            metrics=[self.params['metrics']]
+            metrics=["accuracy"]
         )
 
         # Saving the model
