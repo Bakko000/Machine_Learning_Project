@@ -24,7 +24,7 @@ class DataHandler():
         params = {}
 
             # Generate all possible combinations of parameter values
-        params = list(itertools.product(*param_space.values()))
+        params = itertools.product(*param_space.values())
 
         return params
 
