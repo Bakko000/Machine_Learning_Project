@@ -3,7 +3,7 @@ from keras.optimizers import SGD
 from keras.layers import Dense
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
-from keras.optimizers.schedule import PolynomialDecay
+from keras.optimizers.schedules import PolynomialDecay
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.metrics import confusion_matrix
