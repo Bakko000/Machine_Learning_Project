@@ -3,7 +3,7 @@ from keras.optimizers import SGD
 from keras.layers import Dense
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
-from keras.optimizers.schedules import PolynomialDecay
+from keras.optimizers.schedules.learning_rate_schedule import PolynomialDecay
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.metrics import confusion_matrix
@@ -146,6 +146,20 @@ class BinaryNN():
                 columns=['Predicted_Class_0', 'Predicted_Class_1']
             )
         )
+
+
+    def set_next_combination(self) -> dict:
+        '''
+            Returns a dictionary with the same keywords of the passed one, associated with a \
+            random value choosen by the list associated to any keyword.\n
+            - param_space: dictionary of associations with the following format:\n
+                \t'keyword': [value1, ... ,valueN]
+        '''
+        self.current_params_index += 1
+        if self.current_params_index >= len(self.params_combinations):
+            self.params = {}
+        self.params = self.params_combinations[self.current_params_index]
+        return self.params
 
 
     def create_model(self, n_hidden_layers: int) -> Model:

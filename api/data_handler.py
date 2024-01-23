@@ -13,20 +13,35 @@ class DataHandler():
         self.columns_name = columns_name
 
 
-    def random_dictionary(self, param_space: dict) -> dict:
+    def set_params_combinations(self, params: dict) -> dict:
         '''
-            Returns a dictionary with the same keywords of the passed one, associated with a \
-            random value choosen by the list associated to any keyword.\n
-            - param_space: dictionary of associations with the following format:\n
-                \t'keyword': [value1, ... ,valueN]
+            
         '''
-        params = {}
+        self.params = params
+        self.current_params_index = 0
+        self.params_index_dict = {}
+        self.params_combinations = []
+        for key in params.keys():
+            self.params_index_dict[key] = 0 # current_index for that key
+        while sum([index+1 for key, index in self.params_index_dict.items()]) != sum(len(val_list) for key, val_list in params.items()):
+            params_i = {}
+            for key, i in self.params_index_dict.items():
+                params_i[key] = self.params[key][i]
+            for key in self.params_index_dict.keys():
+                self.params_index_dict[key] += 1
+                if self.params_index_dict[key] < len(self.params[key]):
+                    break
+                self.params_index_dict[key] = 0
+            self.params_combinations.append(params_i)
+        
+        for combination in self.params_combinations:
+            print(combination)
+    
 
-        # Inserts of the keywords with the random values into the dictionary
-        for key in param_space.keys():
-            params[key] = np.random.choice(param_space[key])
-
-        return params
+    def get_params_combinations(self) -> dict:
+        '''
+        '''
+        return self.params_combinations
 
 
     def load_data(self, path: str) -> pd.DataFrame:
