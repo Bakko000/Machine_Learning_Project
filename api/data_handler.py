@@ -12,6 +12,15 @@ class DataHandler():
     def __init__(self, columns_name=[]):
         self.columns_name = columns_name
         self.params_combinations = []
+    
+
+    def random_dictionary(self, params: dict) -> dict:
+        '''
+        '''
+        new_params = {}
+        for key in params.keys():
+            new_params[key] = np.random.choice(params[key])
+        return new_params
 
 
     def set_params_combinations(self, params: dict) -> dict:
