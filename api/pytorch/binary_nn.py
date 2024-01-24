@@ -42,7 +42,7 @@ class BinaryNN(nn.Module):
     '''
 
 
-    def __init__(self, params: dict, monk_i: int, trial: int, n_hidden_layers: int):
+    def __init__(self, params: dict, monk_i: int, current_trial: int,  trials: int, n_hidden_layers: int):
         super(BinaryNN, self).__init__()
 
         # Sets the device used
@@ -52,7 +52,8 @@ class BinaryNN(nn.Module):
         # Passed values initializations
         self.params = params
         self.monk_i = monk_i
-        self.trial = trial
+        self.trial  = current_trial
+        self.trials = trials
 
         # Default's values initializations
         self.history: dict[list] = {'tr_accuracy':[], 'vl_accuracy':[], 'tr_loss':[], 'vl_loss':[], 'ts_accuracy':[], 'ts_loss':[]}
@@ -75,15 +76,11 @@ class BinaryNN(nn.Module):
         self.patience            = 10
         self.y_pred: torch.Tensor = None
         self.y_true: torch.Tensor = None
-
-        # Error case 
-        if n_hidden_layers < 0: 
-            raise ValueError 
     
         # Input Layer
         self.layers = nn.Sequential(
             nn.Linear(self.params['input_size'], self.params['hidden_size']),
-            nn.Tanh(),
+            #nn.Tanh(),
             nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
             nn.Tanh(),
             nn.Linear(self.params['hidden_size'], 1),
@@ -129,8 +126,6 @@ class BinaryNN(nn.Module):
         '''
         for module in self.modules():
             if isinstance(module, nn.Linear):
-                nn.init.uniform_(module.weight)
-                '''
                 if(self.params["weight_init"] == "glorot_uniform"):
                     nn.init.xavier_uniform_(module.weight)
                 elif(self.params["weight_init"] == "glorot_normal"):
@@ -139,8 +134,8 @@ class BinaryNN(nn.Module):
                     nn.init.kaiming_normal_(module.weight)
                 elif(self.params["weight_init"] == "he_uniform"):
                     nn.init.kaiming_uniform_(module.weight)
-                nn.init.zeros_(module.bias)
-                '''
+                else:
+                    raise ValueError
 
 
     def print_plot(self):
@@ -164,7 +159,7 @@ class BinaryNN(nn.Module):
         fpr, tpr, thresholds = roc_curve(
             self.y_true.detach().numpy(),
             self.y_pred.detach().numpy()
-        ) 
+        )
         
         # Calculate the Area Under the Curve (AUC) 
         roc_auc = auc(fpr, tpr) 
@@ -186,7 +181,7 @@ class BinaryNN(nn.Module):
         '''
         print(
             f" Monk:                     {self.monk_i}\n" + \
-            f" Trial:                    {self.trial}\n" + \
+            f" Trial:                    {self.trial}/{self.trials}\n" + \
             f" Hyperparameters:          {self.params}\n" + \
             f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
             f" Mean Validation Loss:     {self.mean_vl_loss}\n" + \
