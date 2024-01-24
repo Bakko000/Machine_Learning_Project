@@ -43,8 +43,8 @@ class DataHandler():
                 self.params_index_dict[key] = 0
             self.params_combinations.append(params_i)
         
-        for combination in self.params_combinations:
-            print(combination)
+        #for combination in self.params_combinations:
+            #print(combination)
     
 
     def get_params_combinations(self) -> dict:
