@@ -72,7 +72,7 @@ class BinaryNN(nn.Module):
         self.f2_score            = 0
         self.recall_score        = 0
         self.precision_score     = 0
-        self.tolerance           = 0.001
+        self.tolerance           = 0.02
         self.patience            = 10
         self.y_pred: torch.Tensor = None
         self.y_true: torch.Tensor = None
@@ -97,15 +97,23 @@ class BinaryNN(nn.Module):
         self.init_weights()
 
         # Loss Function
-        self.criterion = nn.BCELoss()
+        self.criterion = nn.MSELoss()
         
-        # Optimizers
-        self.optimizer = optim.SGD(
-            self.parameters(),
-            lr=self.params['learning_rate'],
-            momentum=self.params['momentum'],
-            #weight_decay=self.params['weight_decay']
-        )
+        # Case of optimizer without weight decay
+        if 'weight_decay' in self.params.keys():
+            self.optimizer = optim.SGD(
+                self.parameters(),
+                lr=self.params['learning_rate'],
+                momentum=self.params['momentum'],
+                weight_decay=self.params['weight_decay']
+            )
+        # Case of optimizer with weight decay
+        else:
+            self.optimizer = optim.SGD(
+                self.parameters(),
+                lr=self.params['learning_rate'],
+                momentum=self.params['momentum']
+            )
 
     
     def __str__(self) -> str:
@@ -247,7 +255,7 @@ class BinaryNN(nn.Module):
         earlystop_counter = 0
 
         # Save initial model weights
-        initial_weights = copy.deepcopy(self.state_dict())
+        #initial_weights = copy.deepcopy(self.state_dict())
 
         # Epochs iteration
         for epoch in range(self.params['epochs']):
@@ -357,7 +365,7 @@ class BinaryNN(nn.Module):
 
                 # Case of exit caused by Early Stopping
                 if earlystop_counter == self.patience:
-                    print(f'Early Stopping: mean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss} < {self.tolerance}')
+                    #print(f'Early Stopping: mean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss} < {self.tolerance}')
                     # Restore model weights to the initial state
                     #self.load_state_dict(initial_weights)
                     break
@@ -416,7 +424,7 @@ class BinaryNN(nn.Module):
             correct_batch_pred_y = sum(
                 [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
             )
-            print("Current Batch true prediction: " + str(correct_batch_pred_y) + "/" + str(len(batch_pred_y)))
+            #print("Current Batch true prediction: " + str(correct_batch_pred_y) + "/" + str(len(batch_pred_y)))
 
             # Case of first assignment
             if self.y_true == None:
