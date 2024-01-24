@@ -11,13 +11,13 @@ class DataHandler():
 
     def __init__(self, columns_name=[]):
         self.columns_name = columns_name
+        self.params_combinations = []
 
 
     def set_params_combinations(self, params: dict) -> dict:
         '''
             
         '''
-        self.params = params
         self.current_params_index = 0
         self.params_index_dict = {}
         self.params_combinations = []
@@ -26,16 +26,16 @@ class DataHandler():
         while sum([index+1 for key, index in self.params_index_dict.items()]) != sum(len(val_list) for key, val_list in params.items()):
             params_i = {}
             for key, i in self.params_index_dict.items():
-                params_i[key] = self.params[key][i]
+                params_i[key] = params[key][i]
             for key in self.params_index_dict.keys():
                 self.params_index_dict[key] += 1
-                if self.params_index_dict[key] < len(self.params[key]):
+                if self.params_index_dict[key] < len(params[key]):
                     break
                 self.params_index_dict[key] = 0
             self.params_combinations.append(params_i)
         
-        #for combination in self.params_combinations:
-        #    print(combination)
+        for combination in self.params_combinations:
+            print(combination)
     
 
     def get_params_combinations(self) -> dict:

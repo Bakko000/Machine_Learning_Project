@@ -72,17 +72,22 @@ class BinaryNN(nn.Module):
         self.f2_score            = 0
         self.recall_score        = 0
         self.precision_score     = 0
-        self.tolerance           = 0.05
+        self.tolerance           = 0.001
         self.patience            = 10
         self.y_pred: torch.Tensor = None
         self.y_true: torch.Tensor = None
+
+        # Choice of Activation Functions
+        if self.params['hidden_activation'] == 'Sigmoid':
+            activation = nn.Sigmoid()
+        elif self.params['hidden_activation'] == 'Tanh':
+            activation = nn.Tanh()
     
         # Input Layer
         self.layers = nn.Sequential(
             nn.Linear(self.params['input_size'], self.params['hidden_size']),
-            #nn.Tanh(),
-            nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
-            nn.Tanh(),
+            #nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
+            activation,
             nn.Linear(self.params['hidden_size'], 1),
             nn.Sigmoid()
         )
@@ -99,7 +104,7 @@ class BinaryNN(nn.Module):
             self.parameters(),
             lr=self.params['learning_rate'],
             momentum=self.params['momentum'],
-            weight_decay=self.params['weight_decay']
+            #weight_decay=self.params['weight_decay']
         )
 
     
@@ -346,18 +351,13 @@ class BinaryNN(nn.Module):
                 
                 # Check for Early Stopping counter's update
                 if (self.mean_vl_loss - prev_mean_vl_loss) < self.tolerance:
-                    print("counter >>> " + str(earlystop_counter))
                     earlystop_counter += 1
                 else:
                     earlystop_counter = 0
 
                 # Case of exit caused by Early Stopping
                 if earlystop_counter == self.patience:
-                    print(
-                        f'Early Stopping:\n\
-                        \tpatience={self.patience} == counter={earlystop_counter}\n\
-                        \tmean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss} < {self.tolerance}'
-                    )
+                    print(f'Early Stopping: mean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss} < {self.tolerance}')
                     # Restore model weights to the initial state
                     #self.load_state_dict(initial_weights)
                     break
