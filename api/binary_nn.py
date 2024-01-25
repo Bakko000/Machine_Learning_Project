@@ -130,7 +130,7 @@ class BinaryNN():
             f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
             f" Mean Validation Loss:     {self.mean_vl_loss}\n" + \
             f" Mean Training Accuracy:   {self.mean_tr_accuracy}\n" + \
-            f" Mean Validation Accuracy:     {self.mean_vl_accuracy}"
+            f" Mean Validation Accuracy:     {self.mean_vl_accuracy}\n" + \
             f" Standard Deviation VL Loss:   {self.vl_devstd}\n" + \
             f" Standard Deviation TR Loss:   {self.tr_devstd}\n" + \
             f" Variance VL Loss:             {self.vl_variance}\n" + \
@@ -295,8 +295,8 @@ class BinaryNN():
         tr_loss, tr_accuracy = self.model.evaluate(x=x_train, y=y_train, verbose=0)
         self.mean_tr_accuracy = float((self.mean_tr_accuracy * self.k_fold_counter + tr_accuracy) / (self.k_fold_counter + 1))
         self.mean_tr_loss = float((self.mean_tr_loss * self.k_fold_counter + tr_loss) / (self.k_fold_counter + 1))
-        self.tr_variance = float(np.var(tr_loss))
-        self.tr_devstd = float(np.std(tr_loss))
+        self.tr_variance = tr_loss
+        self.tr_devstd = tr_loss
 
         # Evaluation on VL set
         if x_val is not None and y_val is not None:
