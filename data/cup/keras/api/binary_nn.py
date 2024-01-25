@@ -1,7 +1,6 @@
 from keras import Model, Sequential
 from keras.optimizers import SGD
 from keras.layers import Dense
-from keras.initializers import glorot_uniform
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 from keras.optimizers.schedules import PolynomialDecay
@@ -208,7 +207,6 @@ class BinaryNN():
                 Dense(
                     units=self.params['hidden_units'],
                     activation="tanh",
-                    kernel_initializer=glorot_uniform(seed=15),
                     kernel_regularizer=l2(self.params['weight_decay']) if 'weight_decay' in self.params else None,
                     use_bias=True
                 )
