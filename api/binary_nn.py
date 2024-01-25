@@ -6,6 +6,7 @@ from keras.callbacks import EarlyStopping
 from keras.optimizers.schedules import PolynomialDecay
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import fbeta_score
 from sklearn.metrics import recall_score
@@ -46,6 +47,10 @@ class BinaryNN():
         self.f2_score         = 0
         self.recall_score     = 0
         self.precision_score  = 0
+        self.vl_variance      = 0 
+        self.vl_devstd        = 0
+        self.tr_variance      = 0 
+        self.tr_devstd        = 0
         self.y_predictions    = []
         self.model            = None
         self.history          = None
@@ -286,12 +291,17 @@ class BinaryNN():
         tr_loss, tr_accuracy = self.model.evaluate(x=x_train, y=y_train, verbose=0)
         self.mean_tr_accuracy = float((self.mean_tr_accuracy * self.k_fold_counter + tr_accuracy) / (self.k_fold_counter + 1))
         self.mean_tr_loss = float((self.mean_tr_loss * self.k_fold_counter + tr_loss) / (self.k_fold_counter + 1))
+        self.tr_variance = float(np.var(tr_loss))
+        self.tr_devstd = float(np.std(tr_loss))
 
         # Evaluation on VL set
         if x_val is not None and y_val is not None:
             vl_loss, vl_accuracy = self.model.evaluate(x=x_val, y=y_val, verbose=0)
             self.mean_vl_accuracy = float((self.mean_vl_accuracy * self.k_fold_counter + vl_accuracy) / (self.k_fold_counter + 1))
             self.mean_vl_loss = float((self.mean_vl_loss * self.k_fold_counter + vl_loss) / (self.k_fold_counter + 1))
+            self.vl_variance = float(np.var(vl_loss))
+            self.vl_devstd = float(np.std(vl_loss))
+
 
         # Update of the trials
         self.k_fold_counter += 1
