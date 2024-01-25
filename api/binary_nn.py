@@ -63,11 +63,6 @@ class BinaryNN():
                 f" Hyperparameters:          {self.params}\n" + \
                 f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
                 f" Mean Validation Loss:     {self.mean_vl_loss}\n" + \
-            f" Standard Deviation VL Loss:   {self.vl_devstd}\n" + \
-            f" Standard Deviation TR Loss:   {self.tr_devstd}\n" + \
-            f" Variance VL Loss:             {self.vl_variance}\n" + \
-            f" Variance TR Loss:             {self.tr_variance}\n" + \
-            f" Standard Deviation TR Loss:   {self.tr_devstd}\n" + \
             f" Test Loss:                    {self.ts_loss}\n" + \
             f" Mean Training Accuracy:       {self.mean_tr_accuracy}\n" + \
             f" Mean Validation Accuracy:     {self.mean_vl_accuracy}\n" + \
@@ -136,6 +131,10 @@ class BinaryNN():
             f" Mean Validation Loss:     {self.mean_vl_loss}\n" + \
             f" Mean Training Accuracy:   {self.mean_tr_accuracy}\n" + \
             f" Mean Validation Accuracy: {self.mean_vl_accuracy}"
+            f" Standard Deviation VL Loss:   {self.vl_devstd}\n" + \
+            f" Standard Deviation TR Loss:   {self.tr_devstd}\n" + \
+            f" Variance VL Loss:             {self.vl_variance}\n" + \
+            f" Variance TR Loss:             {self.tr_variance}\n" + \
         )
     
 
