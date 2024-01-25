@@ -58,19 +58,24 @@ class BinaryNN():
     
     def __str__(self) -> str:
         return \
-            f" Monk:                     {self.monk_i}\n" + \
-            f" Trial:                    {self.trial}\n" + \
-            f" Hyperparameters:          {self.params}\n" + \
-            f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
-            f" Mean Validation Loss:     {self.mean_vl_loss}\n" + \
-            f" Test Loss:                {self.ts_loss}\n" + \
-            f" Mean Training Accuracy:   {self.mean_tr_accuracy}\n" + \
-            f" Mean Validation Accuracy: {self.mean_vl_accuracy}\n" + \
-            f" Test Accuracy:            {self.ts_accuracy}\n" + \
-            f" f1 score:                 {self.f1_score}\n" + \
-            f" f2 score:                 {self.f2_score}\n" + \
-            f" Precision score:         {self.precision_score}\n" + \
-            f" Recall score:             {self.recall_score}\n"
+                f" Monk:                     {self.monk_i}\n" + \
+                f" Trial:                    {self.trial}\n" + \
+                f" Hyperparameters:          {self.params}\n" + \
+                f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
+                f" Mean Validation Loss:     {self.mean_vl_loss}\n" + \
+            f" Standard Deviation VL Loss:   {self.vl_devstd}\n" + \
+            f" Standard Deviation TR Loss:   {self.tr_devstd}\n" + \
+            f" Variance VL Loss:             {self.vl_variance}\n" + \
+            f" Variance TR Loss:             {self.tr_variance}\n" + \
+            f" Standard Deviation TR Loss:   {self.tr_devstd}\n" + \
+            f" Test Loss:                    {self.ts_loss}\n" + \
+            f" Mean Training Accuracy:       {self.mean_tr_accuracy}\n" + \
+            f" Mean Validation Accuracy:     {self.mean_vl_accuracy}\n" + \
+            f" Test Accuracy:                {self.ts_accuracy}\n" + \
+            f" f1 score:                     {self.f1_score}\n" + \
+            f" f2 score:                     {self.f2_score}\n" + \
+            f" Precision score:              {self.precision_score}\n" + \
+            f" Recall score:                 {self.recall_score}\n"
     
 
     def print_plot(self):
