@@ -37,6 +37,10 @@ class BinaryNN():
 
         # Default's values initializations
        
+        self.vlacc_variance   = 0
+        self.vlacc_devstd     = 0
+        self.tracc_variance   = 0
+        self.tracc_devstd     = 0
         self.mean_tr_accuracy = 0
         self.mean_vl_accuracy = 0
         self.ts_accuracy      = 0
@@ -54,7 +58,9 @@ class BinaryNN():
         self.tr_devstd        = 0
         self.y_predictions    = []
         self.tr_losses        = [] 
-        self.vl_losses        = [] 
+        self.vl_losses        = []
+        self.vl_accuracies    = [] 
+        self.tr_accuracies    = [] 
         self.model            = None
         self.history          = None
 
@@ -127,17 +133,21 @@ class BinaryNN():
             Prints the results of the Training Phase.
         '''
         print(
-            f" Monk:                          {self.monk_i}\n" + \
-            f" Trial:                         {self.trial}\n" + \
-            f" Hyperparameters:               {self.params}\n" + \
-            f" Mean Training Loss:            {self.mean_tr_loss}\n" + \
-            f" Mean Validation Loss:          {self.mean_vl_loss}\n" + \
-            f" Mean Training Accuracy:        {self.mean_tr_accuracy}\n" + \
-            f" Mean Validation Accuracy:      {self.mean_vl_accuracy}\n" + \
-            f" Standard Deviation VL Loss:    {self.vl_devstd}\n" + \
-            f" Standard Deviation TR Loss:    {self.tr_devstd}\n" + \
-            f" Variance VL Loss:              {self.vl_variance}\n" + \
-            f" Variance TR Loss:              {self.tr_variance}"
+            f" Monk:                              {self.monk_i}\n" + \
+            f" Trial:                             {self.trial}\n" + \
+            f" Hyperparameters:                   {self.params}\n" + \
+            f" Mean Training Loss:                {self.mean_tr_loss}\n" + \
+            f" Mean Validation Loss:              {self.mean_vl_loss}\n" + \
+            f" Mean Training Accuracy:            {self.mean_tr_accuracy}\n" + \
+            f" Mean Validation Accuracy:          {self.mean_vl_accuracy}\n" + \
+            f" Standard Deviation TR Accuracy:    {self.tracc_devstd}\n" + \
+            f" Standard Deviation VL Accuracy:    {self.vlacc_devstd}\n" + \
+            f" Variance TR Accuracy:              {self.tracc_variance}\n" + \
+            f" Variance VL Accuracy:              {self.vlacc_variance}\n" + \
+            f" Standard Deviation VL Loss:        {self.vl_devstd}\n" + \
+            f" Standard Deviation TR Loss:        {self.tr_devstd}\n" + \
+            f" Variance VL Loss:                  {self.vl_variance}\n" + \
+            f" Variance TR Loss:                  {self.tr_variance}"
         )
     
 
@@ -297,19 +307,25 @@ class BinaryNN():
         # Evaluation on TR set
         tr_loss, tr_accuracy = self.model.evaluate(x=x_train, y=y_train, verbose=0)
         self.tr_losses.append(tr_loss)
+        self.tr_accuracies.append(tr_accuracy)
         self.mean_tr_accuracy = float((self.mean_tr_accuracy * self.k_fold_counter + tr_accuracy) / (self.k_fold_counter + 1))
         self.mean_tr_loss = float((self.mean_tr_loss * self.k_fold_counter + tr_loss) / (self.k_fold_counter + 1))
         self.tr_variance = np.var(self.tr_losses)
         self.tr_devstd = np.std(self.tr_losses)
+        self.tracc_variance = float(np.var(self.tr_accuracies))
+        self.tracc_devstd = float(np.std(self.tr_accuracies))
 
         # Evaluation on VL set
         if x_val is not None and y_val is not None:
             vl_loss, vl_accuracy = self.model.evaluate(x=x_val, y=y_val, verbose=0)
             self.vl_losses.append(vl_loss)
+            self.vl_accuracies.append(vl_accuracy)
             self.mean_vl_accuracy = float((self.mean_vl_accuracy * self.k_fold_counter + vl_accuracy) / (self.k_fold_counter + 1))
             self.mean_vl_loss = float((self.mean_vl_loss * self.k_fold_counter + vl_loss) / (self.k_fold_counter + 1))
             self.vl_variance = float(np.var(self.vl_losses))
             self.vl_devstd = float(np.std(self.vl_losses))
+            self.vlacc_variance = float(np.var(self.vl_accuracies))
+            self.vlacc_devstd = float(np.std(self.vl_accuracies))
 
 
         # Update of the trials
