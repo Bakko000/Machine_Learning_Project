@@ -53,31 +53,60 @@ class DataHandler():
         return self.params_combinations
 
 
-    def load_data(self, path: str) -> pd.DataFrame:
+    def load_data(self, path: str, delimiter=' ') -> pd.DataFrame:
         '''
             Returns the DataFrame associated to the Data set found at path \"path\".\n
             - path: path to the CSV file with data.
         '''
-        return pd.read_csv(filepath_or_buffer=path, names=self.columns_name, delimiter=' ')
+        return pd.read_csv(filepath_or_buffer=path, names=self.columns_name, delimiter=delimiter, comment='#')
 
 
-    def split_data(self, data: pd.DataFrame, y_col_name: str, axis=1):
+    def split_data(self, data: pd.DataFrame, cols_name_split: list, rows_split_perc=1):
         '''
+            It makes the split of the columns passed in \"cols_name_split\" and the split of the rows based on the \
+            percentage \"rows_split_perc\".\n
+            If \"cols_name_split\" = [] -> the method returns: (data, None).\n
+            else -> (data_splitted_x, data_splitted_y) with rows_split_perc=1 \
+                or (data_splitted_x_train, data_splitted_y_train, data_splitted_x_val, data_splitted_y_val) with rows_split_perc!=1.\n
+            So this method makes split on columns or on rows (or both).\n\n
             Returns a tuple of two new DataFrames: (x,y).\n
-            - x: is like \"df\" without the columns specified in the list \"drop_cols\".\n
-            - y: is the column indentified by the key \"target_col\".\n
+            - x: is like \"df\" without the columns specified in the list \"cols_name_split\".\n
+            - y: are the columns indentified by the list \"cols_name_split\".\n
+            or a tuple of this format (x_train, y_train, x_val, y_val) with:
+            - x_train: is like \"df\" without the columns specified in the list \"cols_name_split\".\n
+            - y_train: are the columns indentified by the list \"cols_name_split\" used for Training.\n
+            - x_val: is like \"df\" without the columns specified in the list \"cols_name_split\".\n
+            - y_val: are the columns indentified by the list \"cols_name_split\" used for Validation.\n\n
             The parameters are:\n
             - df: the input DataFrame.\n
-            - y_col_name: name of the target column.\n
-            - axis: 1 for columns' operations, 0 for rows' operations.
+            - cols_name_split: list of names of target columns.\n
+            - rows_split_perc: percentage of the data to split for Training, and so the 1-rows_split_perc percentage for Validation.
         '''
-        y = data[y_col_name].copy(deep=True)
-        x = data.drop(columns=[y_col_name], axis=1).copy(deep=True)
-        if axis == 1:
+        # Case of no columns split
+        if cols_name_split == []:
+            # Case of rows split
+            if rows_split_perc != 1:
+                return np.split(data, [int(data.shape[0] * rows_split_perc)], axis=0)
+            # Case of no rows and no columns split
+            else:
+                raise ValueError
+        
+        # Columns split
+        y = data[cols_name_split].copy(deep=True)
+        x = data.drop(columns=cols_name_split,axis=1).copy(deep=True)
+
+        # Case of only columns split
+        if rows_split_perc == 1:
             return x, y
-        if axis == 0:
-            x_train, x_val = np.split(x, int(data.shape * 0.9), axis=0)
-            y_train, y_val = np.split(y, int(data.shape * 0.9), axis=0)
+        
+        # Case of both splits (rows split and columns split)
+        else:
+            #x_train = x[:int(x.shape[0] * rows_split_perc), :]
+            #x_val = x[int(x.shape[0] * rows_split_perc):, :]
+            x_train, x_val = np.split(x, [int(x.shape[0] * rows_split_perc)], axis=0)
+            #y_train = y[:int(x.shape[0] * rows_split_perc), :]
+            #y_val = y[int(x.shape[0] * rows_split_perc):, :]
+            y_train, y_val = np.split(y, [int(y.shape[0] * rows_split_perc)], axis=0)
             return x_train, y_train, x_val, y_val
 
 
