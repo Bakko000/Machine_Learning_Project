@@ -156,7 +156,7 @@ class BinaryNN():
         model = Sequential()
 
         # Input Layer
-        model.add(Dense(units=self.params['input_units'], activation=self.params['activation'], use_bias=True))
+        model.add(Dense(units=self.params['input_units'], use_bias=True))
 
         # Hidden Layers
         for _ in range(n_hidden_layers):
@@ -174,7 +174,7 @@ class BinaryNN():
 
         # Sets the Loss Function, the Optimizer (Stochastic Gradient Descent) and the Metrics used for evaluation
         model.compile(
-            loss='binary_crossentropy',
+            loss='mean_squared_error',
             optimizer=SGD(
                 learning_rate=self.params['learning_rate'],
                 momentum=self.params['momentum'],
