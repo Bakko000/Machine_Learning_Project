@@ -61,19 +61,24 @@ class DataHandler():
         return pd.read_csv(filepath_or_buffer=path, names=self.columns_name, delimiter=' ')
 
 
-    def split_data(self, data: pd.DataFrame, target_col: str, drop_cols: list):
+    def split_data(self, data: pd.DataFrame, y_col_name: str, axis=1):
         '''
             Returns a tuple of two new DataFrames: (x,y).\n
             - x: is like \"df\" without the columns specified in the list \"drop_cols\".\n
             - y: is the column indentified by the key \"target_col\".\n
             The parameters are:\n
             - df: the input DataFrame.\n
-            - target_col: name of the target column.\n
-            - drop_cols: list of columns' name to drop.
+            - y_col_name: name of the target column.\n
+            - axis: 1 for columns' operations, 0 for rows' operations.
         '''
-        y = data[target_col].copy(deep=True)
-        x = data.drop(columns=drop_cols, axis=1).copy(deep=True)
-        return x, y
+        y = data[y_col_name].copy(deep=True)
+        x = data.drop(columns=[y_col_name], axis=1).copy(deep=True)
+        if axis == 1:
+            return x, y
+        if axis == 0:
+            x_train, x_val = np.split(x, int(data.shape * 0.9), axis=0)
+            y_train, y_val = np.split(y, int(data.shape * 0.9), axis=0)
+            return x_train, y_train, x_val, y_val
 
 
     def one_hot_encoding(self, data: pd.DataFrame):
