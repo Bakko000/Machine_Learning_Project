@@ -72,25 +72,71 @@ class BinaryNN(nn.Module):
         self.f2_score            = 0
         self.recall_score        = 0
         self.precision_score     = 0
-        self.tolerance           = 0.02
         self.patience            = 10
         self.y_pred: torch.Tensor = None
         self.y_true: torch.Tensor = None
 
-        # Choice of Activation Functions
+        # Choice of Input Activation Function
+        if self.params['input_activation'] == 'Sigmoid':
+            input_activation = nn.Sigmoid()
+        elif self.params['input_activation'] == 'Tanh':
+            input_activation = nn.Tanh()
+        elif self.params['input_activation'] == 'ReLU':
+            input_activation = nn.ReLU()
+        elif self.params['input_activation'] == '':
+            input_activation = None
+        else:
+            raise ValueError
+        
+        # Choice of Hidden Activation Function
         if self.params['hidden_activation'] == 'Sigmoid':
-            activation = nn.Sigmoid()
+            hidden_activation = nn.Sigmoid()
         elif self.params['hidden_activation'] == 'Tanh':
-            activation = nn.Tanh()
+            hidden_activation = nn.Tanh()
+        elif self.params['hidden_activation'] == 'ReLU':
+            hidden_activation = nn.ReLU()
+        elif self.params['hidden_activation'] == '':
+            input_activation = None
+        else:
+            raise ValueError
     
         # Input Layer
-        self.layers = nn.Sequential(
-            nn.Linear(self.params['input_size'], self.params['hidden_size']),
-            #nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
-            activation,
-            nn.Linear(self.params['hidden_size'], 1),
-            nn.Sigmoid()
-        )
+        if self.params['hidden_layers'] == 0:
+            if input_activation != None:
+                self.layers = nn.Sequential(
+                    nn.Linear(self.params['input_size'], self.params['hidden_size']),
+                    input_activation,
+                    nn.Linear(self.params['hidden_size'], 1),
+                    nn.Sigmoid()
+                )
+            else:
+                self.layers = nn.Sequential(
+                    nn.Linear(self.params['input_size'], self.params['hidden_size']),
+                    nn.Linear(self.params['hidden_size'], 1),
+                    nn.Sigmoid()
+                )
+        elif self.params['hidden_layers'] == 1:
+            if input_activation != None:
+                self.layers = nn.Sequential(
+                    nn.Linear(self.params['input_size'], self.params['hidden_size']),
+                    input_activation,
+                    nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
+                    hidden_activation,
+                    nn.Linear(self.params['hidden_size'], 1),
+                    nn.Sigmoid()
+                )
+            else:
+                self.layers = nn.Sequential(
+                    nn.Linear(self.params['input_size'], self.params['hidden_size']),
+                    nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
+                    hidden_activation,
+                    nn.Linear(self.params['hidden_size'], 1),
+                    nn.Sigmoid()
+                )
+        else:
+            raise ValueError
+        
+        # Adding layers to the class as a module
         self.add_module('layers', self.layers)
 
         # Initialization of the Weights
@@ -358,7 +404,7 @@ class BinaryNN(nn.Module):
                     self.vl_batch_counter += 1
                 
                 # Check for Early Stopping counter's update
-                if (self.mean_vl_loss - prev_mean_vl_loss) < self.tolerance:
+                if (self.mean_vl_loss - prev_mean_vl_loss) < self.params['tolerance']:
                     earlystop_counter += 1
                 else:
                     earlystop_counter = 0
