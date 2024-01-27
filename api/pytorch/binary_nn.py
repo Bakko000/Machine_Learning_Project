@@ -145,21 +145,13 @@ class BinaryNN(nn.Module):
         # Loss Function
         self.criterion = nn.MSELoss()
         
-        # Case of optimizer without weight decay
-        if 'weight_decay' in self.params.keys():
-            self.optimizer = optim.SGD(
-                self.parameters(),
-                lr=self.params['learning_rate'],
-                momentum=self.params['momentum'],
-                weight_decay=self.params['weight_decay']
-            )
-        # Case of optimizer with weight decay
-        else:
-            self.optimizer = optim.SGD(
-                self.parameters(),
-                lr=self.params['learning_rate'],
-                momentum=self.params['momentum']
-            )
+        # Optimizer initialization
+        self.optimizer = optim.SGD(
+            self.parameters(),
+            lr=self.params['learning_rate'],
+            momentum=self.params['momentum'],
+            weight_decay=self.params['weight_decay']
+        )
 
     
     def __str__(self) -> str:
