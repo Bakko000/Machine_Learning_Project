@@ -42,7 +42,7 @@ class BinaryNN(nn.Module):
     '''
 
 
-    def __init__(self, params: dict, monk_i: int, current_trial: int,  trials: int, n_hidden_layers: int):
+    def __init__(self, params: dict, current_trial: int,  trials: int, monk_i=0):
         super(BinaryNN, self).__init__()
 
         # Sets the device used
@@ -122,7 +122,7 @@ class BinaryNN(nn.Module):
                     input_activation,
                     nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
                     hidden_activation,
-                    nn.Linear(self.params['hidden_size'], 1),
+                    nn.Linear(self.params['hidden_size'], self.params['output_size']),
                     nn.Sigmoid()
                 )
             else:
@@ -130,7 +130,7 @@ class BinaryNN(nn.Module):
                     nn.Linear(self.params['input_size'], self.params['hidden_size']),
                     nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
                     hidden_activation,
-                    nn.Linear(self.params['hidden_size'], 1),
+                    nn.Linear(self.params['hidden_size'], self.params['output_size']),
                     nn.Sigmoid()
                 )
         else:
@@ -163,8 +163,12 @@ class BinaryNN(nn.Module):
 
     
     def __str__(self) -> str:
-        return \
-            f" Monk:                     {self.monk_i}\n" + \
+        if self.monk_i > 0:
+            str = f" Monk:                     {self.monk_i}\n"
+        else:
+            str = ''
+
+        return str + \
             f" Trial:                    {self.trial}\n" + \
             f" Hyperparameters:          {self.params}\n" + \
             f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
@@ -238,8 +242,13 @@ class BinaryNN(nn.Module):
         '''
             Prints the results of the Training Phase.
         '''
+        if self.monk_i > 0:
+            str = f" Monk:                     {self.monk_i}\n"
+        else:
+            str = ''
+
         print(
-            f" Monk:                     {self.monk_i}\n" + \
+            str + \
             f" Trial:                    {self.trial}/{self.trials}\n" + \
             f" Hyperparameters:          {self.params}\n" + \
             f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
