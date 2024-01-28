@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import keras.backend as K
+from keras.optimizers.schedules import PolynomialDecay
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import fbeta_score
 from sklearn.metrics import recall_score
@@ -66,7 +67,7 @@ class BinaryNN():
     
 
     
-    def mean_euclidean_distance(self, y_true, y_pred):
+    def mean_euclidean_error(self, y_true, y_pred):
         return K.mean(K.sqrt(K.sum(K.square(y_pred - y_true), axis=-1)))
 
 
@@ -96,26 +97,6 @@ class BinaryNN():
         plt.legend()
     
 
-    def print_roc_curve(self, y_test):
-        '''
-            Prints
-        '''
-        # Calculate the ROC curve 
-        fpr, tpr, thresholds = roc_curve(y_test, self.y_predictions) 
-        
-        # Calculate the Area Under the Curve (AUC) 
-        roc_auc = auc(fpr, tpr) 
-        
-        # Plot the ROC curve 
-        plt.figure(figsize=(8, 6)) 
-        plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.2f})') 
-        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--') 
-        plt.xlabel('False Positive Rate') 
-        plt.ylabel('True Positive Rate') 
-        plt.title('Receiver Operating Characteristic (ROC) Curve') 
-        plt.legend(loc='lower right')
-        plt.show()
-
 
     def print_training_info(self):
         '''
@@ -125,30 +106,12 @@ class BinaryNN():
             f" Monk:                     {self.monk_i}\n" + \
             f" Trial:                    {self.trial}\n" + \
             f" Hyperparameters:          {self.params}\n" + \
-            f" Mean Training MSE:       {self.mean_tr_loss}\n" + \
-            f" Mean Validation MSE:     {self.mean_vl_loss}\n" + \
-            f" Mean Training MEE:   {self.mean_tr_accuracy}\n" + \
-            f" Mean Validation MEE: {self.mean_vl_accuracy}"
+            f" Mean Training MSE:        {self.mean_tr_loss}\n" + \
+            f" Mean Validation MSE:      {self.mean_vl_loss}\n" + \
+            f" Mean Training MEE:        {self.mean_tr_accuracy}\n" + \
+            f" Mean Validation MEE:      {self.mean_vl_accuracy}"
         )
     
-
-    def print_confusion_matrix(self, y_test):
-        '''
-            Prints the confusion matrix based on the predictions made during the Testing Phase.
-        '''
-
-        # Error case
-        if self.y_predictions == []:
-            raise ValueError
-        
-        # Prints the Confusion Matrix as a DataFrame (alternative: tn, fp, fn, tp = confusion_matrix(y_true=y_test, y_pred=y_predictions).ravel())
-        print(
-            pd.DataFrame(
-                data=confusion_matrix(y_true=y_test, y_pred=self.y_predictions),
-                index=['Real_Class_0', 'Real_Class_1'],
-                columns=['Predicted_Class_0', 'Predicted_Class_1']
-            )
-        )
 
 
     def create_model(self, n_hidden_layers: int) -> Model:
@@ -165,6 +128,15 @@ class BinaryNN():
         # Build the sequential model
         model = Sequential()
 
+        lr_schedule = PolynomialDecay(
+                  initial_learning_rate=self.params['learning_rate'],
+                  decay_steps=self.params['step_decay'],
+                  end_learning_rate=0.0001,
+                  power=self.params['factor_lr_dec'],
+                  cycle=False,
+                  name="PolynomialDecay",
+              )
+
         # Hidden Layers
         for _ in range(n_hidden_layers):
             model.add(
@@ -172,6 +144,7 @@ class BinaryNN():
                     units=self.params['hidden_units'],
                     activation=self.params['activation'],
                     kernel_regularizer=l2(self.params['weight_decay']),
+                    
                     use_bias=True
                 )
             )
@@ -183,11 +156,11 @@ class BinaryNN():
         model.compile(
             loss='mean_squared_error',
             optimizer=SGD(
-                learning_rate=self.params['learning_rate'],
+                learning_rate=lr_schedule,
                 momentum=self.params['momentum'],
                 nesterov=self.params['nesterov']
             ),
-            metrics=[self.mean_euclidean_distance]
+            metrics=[self.mean_euclidean_error]
         )
 
         # Saving the model
@@ -279,62 +252,6 @@ class BinaryNN():
         else:
             return (tr_loss, tr_accuracy)
 
-
-    def test(self, x_test, y_test):
-        '''
-            Evaluates the model on the Test set passed as parameter and returns a tuple of the following format: \
-            (ts_loss, ts_accuracy)\n
-            - x_test: a NumPy array MxN dataset used for Testing.\n
-            - y_test: a NumPy array Mx1 labels used for Testing.
-        '''
-
-        # Error case
-        if self.model is None:
-            raise ValueError
-        
-        # Testing of the model
-        self.ts_loss, self.ts_accuracy = self.model.evaluate(
-            x=x_test,
-            y=y_test,
-            batch_size=self.params['batch_size'],
-            verbose=0
-        )
-
-        return (self.ts_loss, self.ts_accuracy)
-
-    
-    def score(self, x_test, y_test):
-        '''
-            Evaluates the model computing the Beta1-score and the Beta2-score based on the Test set passed as parameter. \
-            Returns a tuple of the following format: \
-            (f1_score, f2_score)\n
-            - x_test: a NumPy array MxN dataset used for Testing.\n
-            - y_test: a NumPy array Mx1 labels used for Testing.
-        '''
-
-        # Error case
-        if self.model is None:
-            raise ValueError
-        
-        # Predictions probability of the model
-        y_predictions_prob = self.model.predict(
-            x=x_test,
-            batch_size=self.params['batch_size'],
-            verbose=0
-        )
-
-        # Converting the Probabilities into Categorized values
-        self.y_predictions = [round(prediction[0]) for prediction in y_predictions_prob]
-
-        # Compute Precision and Recall
-        self.recall_score    = recall_score(y_true=y_test, y_pred=self.y_predictions)
-        self.precision_score = precision_score(y_true=y_test, y_pred=self.y_predictions)
-
-        # Compute the f1-score and f2-score
-        self.f1_score = fbeta_score(y_true=y_test, y_pred=self.y_predictions, beta=1)
-        self.f2_score = fbeta_score(y_true=y_test, y_pred=self.y_predictions, beta=2)
-
-        return (self.f1_score, self.f2_score)
     
     # loss function for Keras and SVM models
     def euclidean_distance_loss(self, y_true, y_pred):
@@ -343,7 +260,7 @@ class BinaryNN():
     def predict(self, x_its, y_its):
         # predict on internal test set
         y_ipred = self.model.predict(x_its, verbose=1)
-        score = self.mean_euclidean_distance(y_its, y_ipred)
+        score = self.mean_euclidean_error(y_its, y_ipred)
         return score
 
 
