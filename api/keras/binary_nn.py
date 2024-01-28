@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import keras.backend as K
-from keras.optimizers.schedules import PolynomialDecay
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import fbeta_score
 from sklearn.metrics import recall_score
@@ -128,15 +127,6 @@ class BinaryNN():
         # Build the sequential model
         model = Sequential()
 
-        lr_schedule = PolynomialDecay(
-                  initial_learning_rate=self.params['learning_rate'],
-                  decay_steps=self.params['step_decay'],
-                  end_learning_rate=0.0001,
-                  power=self.params['factor_lr_dec'],
-                  cycle=False,
-                  name="PolynomialDecay",
-              )
-
         # Hidden Layers
         for _ in range(n_hidden_layers):
             model.add(
@@ -156,7 +146,7 @@ class BinaryNN():
         model.compile(
             loss='mean_squared_error',
             optimizer=SGD(
-                learning_rate=lr_schedule,
+                learning_rate=self.params['learning_rate'],
                 momentum=self.params['momentum'],
                 nesterov=self.params['nesterov']
             ),
