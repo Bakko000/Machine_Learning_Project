@@ -86,9 +86,15 @@ class BinaryNN():
         plt.figure()
         plt.plot(self.history.history['loss'], label='Training MSE')
         plt.plot(self.history.history['val_loss'], label='Validation MSE')
+        plt.title('Learning Curve MSE')
+        plt.xlabel('Epoch')
+        plt.legend()
+        
+        # Print of the Plot
+        plt.figure()
         plt.plot(self.history.history['mean_euclidean_distance'], label='Training MEE')
         plt.plot(self.history.history['val_mean_euclidean_distance'], label='Validation MEE')
-        plt.title('Learning Curve')
+        plt.title('Model MEE')
         plt.xlabel('Epoch')
         plt.legend()
     
