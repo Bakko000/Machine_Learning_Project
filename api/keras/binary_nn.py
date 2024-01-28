@@ -5,6 +5,8 @@ from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
+import keras.backend as K
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import fbeta_score
 from sklearn.metrics import recall_score
@@ -65,6 +67,16 @@ class BinaryNN():
             f" Prediction score:         {self.precision_score}\n" + \
             f" Recall score:             {self.recall_score}\n"
     
+
+
+        # loss function for Keras and SVM models
+    def euclidean_distance_loss(self, y_true, y_pred):
+        return K.sqrt(K.sum(K.square(y_pred - y_true), axis=-1))
+
+
+    # it retrieves the mean value of all the passed losses
+    def euclidean_distance_score(self, y_true, y_pred):
+        return np.mean(self.euclidean_distance_loss(y_true, y_pred))
 
     def print_plot(self):
         '''
@@ -155,9 +167,6 @@ class BinaryNN():
         # Build the sequential model
         model = Sequential()
 
-        # Input Layer
-        model.add(Dense(units=self.params['input_units'], use_bias=True))
-
         # Hidden Layers
         for _ in range(n_hidden_layers):
             model.add(
@@ -170,7 +179,7 @@ class BinaryNN():
             )
         
         # Output Layer
-        model.add(Dense(units=1, activation=self.params['output_activation'], use_bias=True))
+        model.add(Dense(units=3, activation=self.params['output_activation'], use_bias=True))
 
         # Sets the Loss Function, the Optimizer (Stochastic Gradient Descent) and the Metrics used for evaluation
         model.compile(
