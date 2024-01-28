@@ -89,8 +89,8 @@ class BinaryNN():
         
         # Print of the Plot
         plt.figure()
-        plt.plot(self.history.history['mean_euclidean_distance'], label='Training MEE')
-        plt.plot(self.history.history['val_mean_euclidean_distance'], label='Validation MEE')
+        plt.plot(self.history.history['mean_euclidean_error'], label='Training MEE')
+        plt.plot(self.history.history['val_mean_euclidean_error'], label='Validation MEE')
         plt.title('Model MEE')
         plt.xlabel('Epoch')
         plt.legend()
