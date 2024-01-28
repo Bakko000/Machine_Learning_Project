@@ -265,7 +265,7 @@ class BinaryNN():
                 y=y_train,
                 epochs=self.params['epochs'],
                 batch_size=self.params['batch_size'],
-                validation_split=0.2,
+                validation_split=0.1,
                 callbacks=[EarlyStopping(monitor='val_loss', patience=self.params["patience"], restore_best_weights=True)],
                 verbose=0,
                 shuffle=True
