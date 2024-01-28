@@ -142,12 +142,12 @@ class BinaryNN():
             f" Mean Training Accuracy:            {self.mean_tr_accuracy}\n" + \
             f" Mean Validation Accuracy:          {self.mean_vl_accuracy}"
             #f" Standard Deviation TR Accuracy:    {self.tracc_devstd}\n" + \
-            #f" Standard Deviation VL Accuracy:    {self.vlacc_devstd}\n" + \
+            f" Standard Deviation VL Accuracy:    {self.vlacc_devstd}\n" + \
             #f" Variance TR Accuracy:              {self.tracc_variance}\n" + \
-            #f" Variance VL Accuracy:              {self.vlacc_variance}\n" + \
-            #f" Standard Deviation VL Loss:        {self.vl_devstd}\n" + \
+            f" Variance VL Accuracy:              {self.vlacc_variance}\n" + \
+            f" Standard Deviation VL Loss:        {self.vl_devstd}\n" + \
             #f" Standard Deviation TR Loss:        {self.tr_devstd}\n" + \
-            #f" Variance VL Loss:                  {self.vl_variance}\n" + \
+            f" Variance VL Loss:                  {self.vl_variance}\n" + \
             #f" Variance TR Loss:                  {self.tr_variance}"
         )
     
