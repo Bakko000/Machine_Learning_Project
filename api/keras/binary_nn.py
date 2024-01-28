@@ -343,7 +343,7 @@ class BinaryNN():
     def predict(self, x_its, y_its):
         # predict on internal test set
         y_ipred = self.model.predict(x_its, verbose=1)
-        score = self.euclidean_distance_loss(y_its, y_ipred)
+        score = self.mean_euclidean_distance(y_its, y_ipred)
         return score
 
 
