@@ -96,48 +96,37 @@ class BinaryNN(nn.Module):
         elif self.params['hidden_activation'] == 'ReLU':
             hidden_activation = nn.ReLU()
         elif self.params['hidden_activation'] == '':
-            input_activation = None
-        else:
-            raise ValueError
-    
-        # Input Layer
-        if self.params['hidden_layers'] == 0:
-            if input_activation != None:
-                self.layers = nn.Sequential(
-                    nn.Linear(self.params['input_size'], self.params['hidden_size']),
-                    input_activation,
-                    nn.Linear(self.params['hidden_size'], 1),
-                    nn.Sigmoid()
-                )
-            else:
-                self.layers = nn.Sequential(
-                    nn.Linear(self.params['input_size'], self.params['hidden_size']),
-                    nn.Linear(self.params['hidden_size'], 1),
-                    nn.Sigmoid()
-                )
-        elif self.params['hidden_layers'] == 1:
-            if input_activation != None:
-                self.layers = nn.Sequential(
-                    nn.Linear(self.params['input_size'], self.params['hidden_size']),
-                    input_activation,
-                    nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
-                    hidden_activation,
-                    nn.Linear(self.params['hidden_size'], self.params['output_size']),
-                    nn.Sigmoid()
-                )
-            else:
-                self.layers = nn.Sequential(
-                    nn.Linear(self.params['input_size'], self.params['hidden_size']),
-                    nn.Linear(self.params['hidden_size'], self.params['hidden_size']),
-                    hidden_activation,
-                    nn.Linear(self.params['hidden_size'], self.params['output_size']),
-                    nn.Sigmoid()
-                )
+            hidden_activation = None
         else:
             raise ValueError
         
+        # Choice of Output Activation Function
+        if self.params['output_activation'] == 'Sigmoid':
+            output_activation = nn.Sigmoid()
+        elif self.params['output_activation'] == 'Tanh':
+            output_activation = nn.Tanh()
+        elif self.params['output_activation'] == 'ReLU':
+            output_activation = nn.ReLU()
+        elif self.params['output_activation'] == '':
+            output_activation = None
+        else:
+            raise ValueError
+    
+        # Adding layers Dynamically from an empty MouleList
+        self.layers = nn.ModuleList()
+        self.layers.append(nn.Linear(self.params['input_size'], self.params['hidden_size']))
+        if input_activation != None:
+            self.layers.append(input_activation)
+        for _ in range(self.params['hidden_layers']):
+            self.layers.append(nn.Linear(self.params['hidden_size'], self.params['hidden_size']))
+            if hidden_activation != None:
+                self.layers.append(hidden_activation)
+        self.layers.append(nn.Linear(self.params['hidden_size'], self.params['output_size']))
+        if output_activation != None:
+            self.layers.append(output_activation)
+        
         # Adding layers to the class as a module
-        self.add_module('layers', self.layers)
+        #self.add_module('layers', self.layers)
 
         # Initialization of the Weights
         self.init_weights()
@@ -179,8 +168,9 @@ class BinaryNN(nn.Module):
         '''
             Initializes the weights of the layers with default values.
         '''
-        for module in self.modules():
+        for module in self.layers:
             if isinstance(module, nn.Linear):
+                #print(f"Before initialization - Layer {module}: {module.weight.shape}") # debug
                 if(self.params["weight_init"] == "glorot_uniform"):
                     nn.init.xavier_uniform_(module.weight)
                 elif(self.params["weight_init"] == "glorot_normal"):
@@ -191,9 +181,10 @@ class BinaryNN(nn.Module):
                     nn.init.kaiming_uniform_(module.weight)
                 else:
                     raise ValueError
+                #print(f"After initialization - Layer {module}: {module.weight.shape}") # debug
 
 
-    def print_plot(self):
+    def print_loss_plot(self):
         '''
             Prints the plot based on the history of the trained model.
         '''
@@ -204,6 +195,19 @@ class BinaryNN(nn.Module):
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
         plt.legend()
+    
+
+    def print_regression_plot(self, x, y):
+        '''
+            Prints the plot based on the history of the trained model.
+        '''
+        plt.figure()
+        plt.plot(x, y, 'ro')
+        plt.plot(x, self(torch.from_numpy(x).to(dtype=torch.float32)).detach().numpy(), 'b')
+        plt.title('Learning Curve')
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.show()
     
 
     def print_roc_curve(self, y_test):
@@ -269,7 +273,12 @@ class BinaryNN(nn.Module):
         '''
             Execute the forwarding pass.
         '''
-        return self.layers(x)
+        #print(f"batch_x: " + str(x.size())) # debug
+        for i in range(len(self.layers)):
+            #print(f"forward Layer {i+1}/{len(self.layers)}: " + str(self.layers[i])) # debug
+            x = self.layers[i](x)
+            #print(f"forward {i+1}/{len(self.layers)}: " + str(x.size())) # debug
+        return x
 
     
     def fit(self, x_train, y_train, x_val=None, y_val=None):
@@ -336,12 +345,16 @@ class BinaryNN(nn.Module):
                 
                 # Optimization
                 self.optimizer.step()
+                
+                # Number of decimal cyphers
+                dec_cyphers = self.params['decimal_cypher_degree']
 
                 # Predictions
-                batch_pred_y = torch.round(tr_outputs)
+                batch_pred_y = torch.round(tr_outputs * (10**dec_cyphers)) / (10**dec_cyphers)
                 correct_batch_pred_y = sum(
-                    [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
+                    [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if torch.all(batch_pred_y_i == batch_y_i)]
                 )
+                #print("correct_batch_pred_y: " + str(correct_batch_pred_y) + "/" + str(len(batch_pred_y)) + " | batch_pred_y: " + str(batch_pred_y.size()) + " | batch_y: " + str(batch_pred_y.size()))
                 
                 # Compute Accuracy and Loss
                 tr_accuracy = float(correct_batch_pred_y / len(batch_pred_y))
@@ -391,7 +404,7 @@ class BinaryNN(nn.Module):
                     # Predictions
                     batch_pred_y = torch.round(vl_outputs)
                     correct_batch_pred_y = sum(
-                        [float(1) for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
+                        [float(1) for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if torch.all(batch_pred_y_i == batch_y_i)]
                     )
 
                     # Compute Accuracy and Loss
@@ -469,7 +482,7 @@ class BinaryNN(nn.Module):
             # Predictions
             batch_pred_y = torch.round(ts_outputs)
             correct_batch_pred_y = sum(
-                [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
+                [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if torch.all(batch_pred_y_i == batch_y_i)]
             )
             #print("Current Batch true prediction: " + str(correct_batch_pred_y) + "/" + str(len(batch_pred_y)))
 
