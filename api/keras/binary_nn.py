@@ -122,10 +122,10 @@ class BinaryNN():
             f" Monk:                     {self.monk_i}\n" + \
             f" Trial:                    {self.trial}\n" + \
             f" Hyperparameters:          {self.params}\n" + \
-            f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
-            f" Mean Validation Loss:     {self.mean_vl_loss}\n" + \
-            f" Mean Training Accuracy:   {self.mean_tr_accuracy}\n" + \
-            f" Mean Validation Accuracy: {self.mean_vl_accuracy}"
+            f" Mean Training MSE:       {self.mean_tr_loss}\n" + \
+            f" Mean Validation MSE:     {self.mean_vl_loss}\n" + \
+            f" Mean Training MEE:   {self.mean_tr_accuracy}\n" + \
+            f" Mean Validation MEE: {self.mean_vl_accuracy}"
         )
     
 
@@ -214,7 +214,7 @@ class BinaryNN():
                 epochs=self.params['epochs'],
                 batch_size=self.params['batch_size'],
                 validation_split=0.2,
-                callbacks=[EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)],
+                callbacks=[EarlyStopping(monitor='val_loss', patience=self.params["patience"], restore_best_weights=True)],
                 verbose=0,
                 shuffle=True
             )
@@ -227,7 +227,7 @@ class BinaryNN():
                 epochs=self.params['epochs'],
                 batch_size=self.params['batch_size'],
                 validation_data=(x_val, y_val),
-                callbacks=[EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)],
+                callbacks=[EarlyStopping(monitor='val_loss', patience=self.params["patience"], restore_best_weights=True)],
                 verbose=0,
                 shuffle=True
             )
