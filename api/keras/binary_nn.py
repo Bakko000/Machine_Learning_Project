@@ -68,15 +68,10 @@ class BinaryNN():
             f" Recall score:             {self.recall_score}\n"
     
 
+    
+    def mean_euclidean_distance(self, y_true, y_pred):
+        return K.mean(K.sqrt(K.sum(K.square(y_pred - y_true), axis=-1)))
 
-        # loss function for Keras and SVM models
-    def euclidean_distance_loss(self, y_true, y_pred):
-        return K.sqrt(K.sum(K.square(y_pred - y_true), axis=-1))
-
-
-    # it retrieves the mean value of all the passed losses
-    def euclidean_distance_score(self, y_true, y_pred):
-        return np.mean(self.euclidean_distance_loss(y_true, y_pred))
 
     def print_plot(self):
         '''
@@ -189,7 +184,7 @@ class BinaryNN():
                 momentum=self.params['momentum'],
                 nesterov=True
             ),
-            metrics=[self.params['metrics']]
+            metrics=[self.mean_euclidean_distance]
         )
 
         # Saving the model
