@@ -15,9 +15,6 @@ from sklearn.metrics import roc_curve, auc
 
 
 
-
-
-
 class BinaryNN():
     '''
         Class which offers methods to handle Neural Networks for Binary Classification tasks with at least 3 layers \
@@ -188,7 +185,7 @@ class BinaryNN():
             optimizer=SGD(
                 learning_rate=self.params['learning_rate'],
                 momentum=self.params['momentum'],
-                nesterov=True
+                nesterov=self.params['nesterov']
             ),
             metrics=[self.mean_euclidean_distance]
         )
@@ -338,5 +335,13 @@ class BinaryNN():
         self.f2_score = fbeta_score(y_true=y_test, y_pred=self.y_predictions, beta=2)
 
         return (self.f1_score, self.f2_score)
+    
+
+
+    def predict(self, x_its, y_its):
+        # predict on internal test set
+        y_ipred = self.model.predict(x_its)
+        score = self.mean_euclidean_distance(y_its, y_ipred)
+        return K.eval(score)
 
 
