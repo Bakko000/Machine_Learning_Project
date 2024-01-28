@@ -336,12 +336,14 @@ class BinaryNN():
 
         return (self.f1_score, self.f2_score)
     
-
+    # loss function for Keras and SVM models
+    def euclidean_distance_loss(y_true, y_pred):
+        return K.sqrt(K.sum(K.square(y_pred - y_true), axis=-1))
 
     def predict(self, x_its, y_its):
         # predict on internal test set
         y_ipred = self.model.predict(x_its)
-        score = self.mean_euclidean_distance(y_its, y_ipred)
-        return score
+        score = self.euclidean_distance_loss(y_its, y_ipred)
+        return K.eval(score)
 
 
