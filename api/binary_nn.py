@@ -140,7 +140,7 @@ class BinaryNN():
             f" Mean Training Loss:                {self.mean_tr_loss}\n" + \
             f" Mean Validation Loss:              {self.mean_vl_loss}\n" + \
             f" Mean Training Accuracy:            {self.mean_tr_accuracy}\n" + \
-            f" Mean Validation Accuracy:          {self.mean_vl_accuracy}"
+            f" Mean Validation Accuracy:          {self.mean_vl_accuracy}\n" + \
             #f" Standard Deviation TR Accuracy:    {self.tracc_devstd}\n" + \
             f" Standard Deviation VL Accuracy:    {self.vlacc_devstd}\n" + \
             #f" Variance TR Accuracy:              {self.tracc_variance}\n" + \
