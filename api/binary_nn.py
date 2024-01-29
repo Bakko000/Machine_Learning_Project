@@ -57,6 +57,10 @@ class BinaryNN():
         self.vl_devstd        = 0
         self.tr_variance      = 0 
         self.tr_devstd        = 0
+        self.mean_vl_acc_list = []
+        self.mean_tr_acc_list = []
+        self.mean_vl_loss_list = []
+        self.mean_tr_loss_list = []
         self.y_predictions    = []
         self.tr_losses        = [] 
         self.vl_losses        = []
@@ -94,19 +98,21 @@ class BinaryNN():
 
         # Print of the Plot
         plt.figure()
-        plt.plot(self.history.history['loss'], label='Training Loss')
-        plt.plot(self.history.history['val_loss'], label='Validation Loss', linestyle='--')
+        plt.plot(self.mean_tr_loss_list, label='Training Loss')
+        plt.plot(self.mean_vl_loss_list, label='Validation Loss', linestyle='--')
         plt.title('Learning Curve')
         plt.xlabel('Epoch')
         plt.legend()
 
+        # Print of the Plot
         plt.figure()
-        plt.plot(self.history.history['accuracy'], label='Training Accuracy')
-        plt.plot(self.history.history['val_accuracy'], label='Validation Accuracy', linestyle='--')
+        plt.plot(self.mean_tr_acc_list, label='Training Accuracy')
+        plt.plot(self.mean_vl_acc_list, label='Validation Accuracy', linestyle='--')
         plt.title('Model Accuracy')
         plt.xlabel('Epoch')
         plt.legend()
-    
+
+
 
     def print_roc_curve(self, y_test):
         '''
@@ -296,9 +302,17 @@ class BinaryNN():
                 shuffle=True
             )
         
+              # Save the training history for this trial
+            self.mean_vl_loss_list += self.history.history["val_loss"]
+            self.mean_vl_acc_list += self.history.history["val_accuracy"]
+        
         # Error case
         else:
             raise ValueError
+
+         # Save the training history for this trial
+        self.mean_tr_loss_list += self.history.history["loss"]
+        self.mean_tr_acc_list += self.history.history["accuracy"]
 
         # Returns the history
         return self.history
