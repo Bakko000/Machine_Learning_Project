@@ -159,7 +159,7 @@ class BinaryNN():
         return self.model
 
     
-    def fit(self, x_train, y_train, x_val=None, y_val=None):
+    def fit(self, x_train, y_train, x_val=None, y_val=None, retraining=False):
         '''
             Train the model based on the data passed as parameters and returns the history.\n
             - x_train: a NumPy array MxN dataset used for Training.\n
@@ -171,6 +171,17 @@ class BinaryNN():
         # Error case
         if self.model is None:
             raise ValueError
+        
+        if retraining:
+        
+            # Training of the model on entire dataset for retraining
+            self.history = self.model.fit(
+                    x=x_train,
+                    y=y_train,
+                    epochs=self.params['epochs'],
+                    batch_size=self.params['batch_size'],
+                    verbose=0,
+                    )
         
         # Training of the model with only TR set
         if x_val is None and y_val is None:
