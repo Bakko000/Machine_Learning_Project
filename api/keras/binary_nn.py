@@ -57,6 +57,10 @@ class BinaryNN():
         self.vl_losses        = []
         self.vl_accuracies    = [] 
         self.tr_accuracies    = [] 
+        self.mean_tr_loss_list = []
+        self.mean_vl_loss_list = []
+        self.mean_tr_acc_list = []
+        self.mean_vl_acc_list = []
         self.model            = None
         self.history          = None
 
@@ -94,16 +98,16 @@ class BinaryNN():
 
         # Print of the Plot
         plt.figure()
-        plt.plot(self.history.history['loss'], label='Training MSE')
-        plt.plot(self.history.history['val_loss'], label='Validation MSE')
-        plt.title('Learning Curve MSE')
+        plt.plot(self.mean_tr_loss_list, label='Training MSE')
+        plt.plot(self.mean_vl_loss_list, label='Validation MSE', linestyle='--')
+        plt.title('Model MSE')
         plt.xlabel('Epoch')
         plt.legend()
-        
+
         # Print of the Plot
         plt.figure()
-        plt.plot(self.history.history['mean_euclidean_error'], label='Training MEE')
-        plt.plot(self.history.history['val_mean_euclidean_error'], label='Validation MEE')
+        plt.plot(self.mean_tr_acc_list, label='Training MEE')
+        plt.plot(self.mean_vl_acc_list, label='Validation MEE', linestyle='--')
         plt.title('Model MEE')
         plt.xlabel('Epoch')
         plt.legend()
@@ -229,10 +233,17 @@ class BinaryNN():
                 verbose=0,
                 shuffle=True
             )
+            # Save the training history for this trial
+            self.mean_vl_loss_list += self.history.history["val_loss"]
+            self.mean_vl_acc_list += self.history.history["val_accuracy"]
         
         # Error case
         else:
             raise ValueError
+
+         # Save the training history for this trial
+        self.mean_tr_loss_list += self.history.history["loss"]
+        self.mean_tr_acc_list += self.history.history["accuracy"]
 
         # Returns the history
         return self.history
