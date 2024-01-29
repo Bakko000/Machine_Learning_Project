@@ -235,7 +235,7 @@ class BinaryNN():
             )
             # Save the training history for this trial
             self.mean_vl_loss_list += self.history.history["val_loss"]
-            self.mean_vl_acc_list += self.history.history["val_accuracy"]
+            self.mean_vl_acc_list += self.history.history["val_mean_euclidean_error"]
         
         # Error case
         else:
@@ -243,7 +243,7 @@ class BinaryNN():
 
          # Save the training history for this trial
         self.mean_tr_loss_list += self.history.history["loss"]
-        self.mean_tr_acc_list += self.history.history["accuracy"]
+        self.mean_tr_acc_list += self.history.history["mean_euclidean_error"]
 
         # Returns the history
         return self.history
