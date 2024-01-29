@@ -6,6 +6,7 @@ from keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from keras.initializers import glorot_uniform
 import keras.backend as K
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import fbeta_score
@@ -32,6 +33,14 @@ class BinaryNN():
         self.trial = trial
 
         # Default's values initializations
+        self.vlacc_variance   = 0
+        self.vlacc_devstd     = 0
+        self.tracc_variance   = 0
+        self.tracc_devstd     = 0
+        self.vl_variance      = 0 
+        self.vl_devstd        = 0
+        self.tr_variance      = 0 
+        self.tr_devstd        = 0
         self.mean_tr_accuracy = 0
         self.mean_vl_accuracy = 0
         self.ts_accuracy      = 0
@@ -44,6 +53,10 @@ class BinaryNN():
         self.recall_score     = 0
         self.precision_score  = 0
         self.y_predictions    = []
+        self.tr_losses        = [] 
+        self.vl_losses        = []
+        self.vl_accuracies    = [] 
+        self.tr_accuracies    = [] 
         self.model            = None
         self.history          = None
 
@@ -134,7 +147,7 @@ class BinaryNN():
                     units=self.params['hidden_units'],
                     activation=self.params['activation'],
                     kernel_regularizer=l2(self.params['weight_decay']),
-                    
+                    kernel_initializer=glorot_uniform(seed=15),
                     use_bias=True
                 )
             )
@@ -235,12 +248,24 @@ class BinaryNN():
         tr_loss, tr_accuracy = self.model.evaluate(x=x_train, y=y_train, verbose=0)
         self.mean_tr_accuracy = float((self.mean_tr_accuracy * self.k_fold_counter + tr_accuracy) / (self.k_fold_counter + 1))
         self.mean_tr_loss = float((self.mean_tr_loss * self.k_fold_counter + tr_loss) / (self.k_fold_counter + 1))
+        self.tr_losses.append(tr_loss)
+        self.tr_accuracies.append(tr_accuracy)
+        self.tr_variance = np.var(self.tr_losses)
+        self.tr_devstd = np.std(self.tr_losses)
+        self.tracc_variance = float(np.var(self.tr_accuracies))
+        self.tracc_devstd = float(np.std(self.tr_accuracies))
 
         # Evaluation on VL set
         if x_val is not None and y_val is not None:
             vl_loss, vl_accuracy = self.model.evaluate(x=x_val, y=y_val, verbose=0)
             self.mean_vl_accuracy = float((self.mean_vl_accuracy * self.k_fold_counter + vl_accuracy) / (self.k_fold_counter + 1))
             self.mean_vl_loss = float((self.mean_vl_loss * self.k_fold_counter + vl_loss) / (self.k_fold_counter + 1))
+            self.vl_losses.append(vl_loss)
+            self.vl_accuracies.append(vl_accuracy)
+            self.vl_variance = float(np.var(self.vl_losses))
+            self.vl_devstd = float(np.std(self.vl_losses))
+            self.vlacc_variance = float(np.var(self.vl_accuracies))
+            self.vlacc_devstd = float(np.std(self.vl_accuracies))
 
         # Update of the trials
         self.k_fold_counter += 1
