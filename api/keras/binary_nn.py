@@ -5,6 +5,7 @@ from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 import pandas as pd
+from sklearn.metrics import r2_score
 import numpy as np
 from keras.initializers import glorot_uniform
 import keras.backend as K
@@ -87,7 +88,7 @@ class BinaryNN():
         return K.mean(K.sqrt(K.sum(K.square(y_pred - y_true), axis=-1)))
 
 
-    def print_plot(self, test=False):
+    def print_plot(self):
         '''
             Prints the plot based on the history of the trained model.
         '''
@@ -99,8 +100,6 @@ class BinaryNN():
         # Print of the Plot
         plt.figure()
         plt.plot(self.mean_tr_loss_list, label='Training MSE')
-        if(test):
-            plt.plot(self.mean_vl_loss_list, label='Test MSE', linestyle='--')
         plt.plot(self.mean_vl_loss_list, label='Validation MSE', linestyle='--')
         plt.title('Model MSE')
         plt.xlabel('Epoch')
@@ -109,8 +108,6 @@ class BinaryNN():
         # Print of the Plot
         plt.figure()
         plt.plot(self.mean_tr_acc_list, label='Training MEE')
-        if(test):
-            plt.plot(self.mean_vl_loss_list, label='Test MEE', linestyle='--')
         plt.plot(self.mean_vl_acc_list, label='Validation MEE', linestyle='--')
         plt.title('Model MEE')
         plt.xlabel('Epoch')
@@ -300,16 +297,32 @@ class BinaryNN():
         # Return in case of evaluation on TR set only
         else:
             return (tr_loss, tr_accuracy)
-
-    
-    # loss function for Keras and SVM models
-    def euclidean_distance_loss(self, y_true, y_pred):
-        return K.sqrt(K.sum(K.square(y_pred - y_true), axis=-1))
+        
 
     def predict(self, x_its, y_its):
         # predict on internal test set
         y_ipred = self.model.predict(x_its, verbose=1)
         score = self.mean_euclidean_error(y_its, y_ipred)
-        return score
+        return score, y_ipred
 
+
+    def calculate_r2(self, y_true, y_pred):
+        """
+        Calculate R-squared for each output variable and average R-squared.
+
+        Parameters:
+        - y_true: True labels (numpy array with shape [n_samples, n_outputs])
+        - y_pred: Predicted values (numpy array with shape [n_samples, n_outputs])
+
+        Returns:
+        - r2_scores: List of R-squared scores for each output variable
+        - average_r2: Average R-squared across all output variables
+        """
+        # Calculate R-squared for each output variable
+        r2_scores = [r2_score(y_true[:, i], y_pred[:, i]) for i in range(y_true.shape[1])]
+
+        # Average R-squared across all output variables
+        average_r2 = np.mean(r2_scores)
+
+        return r2_scores, average_r2
 
