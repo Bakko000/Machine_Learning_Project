@@ -59,6 +59,37 @@ class DataHandler():
             - path: path to the CSV file with data.
         '''
         return pd.read_csv(filepath_or_buffer=path, names=self.columns_name, delimiter=delimiter, comment='#')
+    
+
+    def write_data(self, filename: str, id_list: list, data: list, cols_name: list):
+        '''
+            Creates a file CSV with the dataset passed as parameter and some static comments.
+        '''
+
+        # Opens the CSV file
+        with open(filename, 'w') as f:
+
+            # Writes some comments
+            f.write('# Emad Gianluca Corrado\n')
+            f.write(f'# Nickname\n')
+            f.write(f'# Dataset name\n')
+            f.write(f'# Date: 27 Jan 2024\n')
+
+            # Writes columns name
+            for i, col in enumerate(cols_name):
+                if i < len(cols_name)-1:
+                    f.write(f'{col},')
+                else:
+                    f.write(f'{col}\n')
+            
+            # Writes IDs and data
+            for id, row in zip(id_list,data):
+                f.write(f'{id},')
+                for i, elem in enumerate(row):
+                    if i < len(row)-1:
+                        f.write(f'{elem},')
+                    else:
+                        f.write(f'{elem}\n')
 
 
     def split_data(self, data: pd.DataFrame, cols_name_split: list, rows_split_perc=1):

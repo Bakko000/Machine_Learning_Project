@@ -3,7 +3,7 @@ from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
-import copy
+import numpy as np
 import pandas as pd
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import fbeta_score
@@ -56,12 +56,12 @@ class BinaryNN(nn.Module):
         self.trials = trials
 
         # Default's values initializations
-        self.history: dict[list] = {'tr_accuracy':[], 'vl_accuracy':[], 'tr_loss':[], 'vl_loss':[], 'ts_accuracy':[], 'ts_loss':[]}
-        self.mean_ts_accuracy    = 0
-        self.mean_tr_accuracy    = 0
+        self.history: dict[list] = {'tr_metric':[], 'vl_metric':[], 'tr_loss':[], 'vl_loss':[], 'ts_metric':[], 'ts_loss':[]}
+        self.mean_ts_metric      = 0
+        self.mean_tr_metric      = 0
         self.mean_ts_loss        = 0
-        self.mean_vl_accuracy    = 0
-        self.ts_accuracy         = 0
+        self.mean_vl_metric      = 0
+        self.ts_metric           = 0
         self.mean_tr_loss        = 0
         self.mean_vl_loss        = 0
         self.tr_batch_counter    = 0
@@ -107,6 +107,8 @@ class BinaryNN(nn.Module):
             output_activation = nn.Tanh()
         elif self.params['output_activation'] == 'ReLU':
             output_activation = nn.ReLU()
+        elif self.params['output_activation'] == 'Linear':
+            output_activation = nn.Linear(in_features=self.params['hidden_size'], out_features=self.params['output_size'])
         elif self.params['output_activation'] == '':
             output_activation = None
         else:
@@ -124,9 +126,6 @@ class BinaryNN(nn.Module):
         self.layers.append(nn.Linear(self.params['hidden_size'], self.params['output_size']))
         if output_activation != None:
             self.layers.append(output_activation)
-        
-        # Adding layers to the class as a module
-        #self.add_module('layers', self.layers)
 
         # Initialization of the Weights
         self.init_weights()
@@ -135,29 +134,40 @@ class BinaryNN(nn.Module):
         self.criterion = nn.MSELoss()
         
         # Optimizer initialization
-        self.optimizer = optim.SGD(
-            self.parameters(),
-            lr=self.params['learning_rate'],
-            momentum=self.params['momentum'],
-            weight_decay=self.params['weight_decay']
-        )
+        if self.params['weight_decay'] == 0:
+            self.optimizer = optim.SGD(
+                self.parameters(),
+                lr=self.params['learning_rate'],
+                momentum=self.params['momentum'],
+                nesterov=self.params['nesterov']
+            )
+        else:
+            self.optimizer = optim.SGD(
+                self.parameters(),
+                lr=self.params['learning_rate'],
+                momentum=self.params['momentum'],
+                nesterov=self.params['nesterov'],
+                weight_decay=self.params['weight_decay']
+            )
 
     
     def __str__(self) -> str:
         if self.monk_i > 0:
-            str = f" Monk:                     {self.monk_i}\n"
+            string = f" Monk:                     {self.monk_i}\n"
         else:
-            str = ''
+            string = ''
+        
+        metric = self.params['metrics'] if self.params['metrics'] == 'Accuracy:' else str(self.params['metrics'] + ':     ')
 
-        return str + \
+        return string + \
             f" Trial:                    {self.trial}\n" + \
             f" Hyperparameters:          {self.params}\n" + \
             f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
             f" Mean Validation Loss:     {self.mean_vl_loss}\n" + \
             f" Test Loss:                {self.mean_ts_loss}\n" + \
-            f" Mean Training Accuracy:   {self.mean_tr_accuracy}\n" + \
-            f" Mean Validation Accuracy: {self.mean_vl_accuracy}\n" + \
-            f" Test Accuracy:            {self.mean_ts_accuracy}\n" + \
+            f" Mean Training {metric}   {self.mean_tr_metric}\n" + \
+            f" Mean Validation {metric} {self.mean_vl_metric}\n" + \
+            f" Test {metric}            {self.mean_ts_metric}\n" + \
             f" f1 score:                 {self.f1_score}\n" + \
             f" f2 score:                 {self.f2_score}\n" + \
             f" Prediction score:         {self.precision_score}\n" + \
@@ -239,18 +249,20 @@ class BinaryNN(nn.Module):
             Prints the results of the Training Phase.
         '''
         if self.monk_i > 0:
-            str = f" Monk:                     {self.monk_i}\n"
+            string = f" Monk:                     {self.monk_i}\n"
         else:
-            str = ''
+            string = ''
+        
+        metric = self.params['metrics'] if self.params['metrics'] == 'Accuracy:' else str(self.params['metrics'] + ':     ')
 
         print(
-            str + \
+            string + \
             f" Trial:                    {self.trial}/{self.trials}\n" + \
             f" Hyperparameters:          {self.params}\n" + \
             f" Mean Training Loss:       {self.mean_tr_loss}\n" + \
             f" Mean Validation Loss:     {self.mean_vl_loss}\n" + \
-            f" Mean Training Accuracy:   {self.mean_tr_accuracy}\n" + \
-            f" Mean Validation Accuracy: {self.mean_vl_accuracy}"
+            f" Mean Training {metric}   {self.mean_tr_metric}\n" + \
+            f" Mean Validation {metric} {self.mean_vl_metric}"
         )
     
 
@@ -268,16 +280,59 @@ class BinaryNN(nn.Module):
             )
         )
     
+    
+    def is_better_model_than(self, model):
+        '''
+            Returns True if this (self) model has better metrics than the model passed as parameter, \
+            otherwise False.
+            - model: a model of the same type (class type NN) of this (self).
+        '''
+        # Case of metric used: Accuracy
+        if self.params['metrics'] == 'Accuracy':
+
+            # Case of self better model than model
+            if (
+                    self.mean_tr_metric+0.02 <= self.mean_vl_metric \
+                    and self.mean_tr_metric-0.05 <= self.mean_vl_metric
+                    and (
+                        model.mean_vl_metric < self.mean_vl_metric \
+                        or (
+                            model.mean_vl_metric == self.mean_vl_metric \
+                            and model.mean_tr_metric < self.mean_tr_metric
+                        )
+                    )
+                ) or (
+                    self.mean_vl_metric > model.mean_vl_metric \
+                    and (
+                        abs(self.mean_tr_metric - self.mean_vl_metric) < abs(model.mean_tr_metric - model.mean_vl_metric) \
+                        or abs(self.mean_tr_metric - self.mean_vl_metric) < 0.02
+                    )
+                ):
+                return True
+        
+        # Case of metric used: MEE
+        elif self.params['metrics'] == 'MEE':
+            
+            # Case of self better model than model
+            if self.mean_vl_metric < model.mean_vl_metric \
+                and abs(self.mean_tr_loss - self.mean_vl_loss) < 0.1:
+                return True
+        
+        # Case of metric not supported
+        else:
+            raise ValueError(f"Metric '{self.params['metrics']}' not supported.")
+            
+        return False
+    
 
     def forward(self, x):
         '''
             Execute the forwarding pass.
         '''
-        #print(f"batch_x: " + str(x.size())) # debug
+        #print(f"forward 0/{len(self.layers)}: " + str(x.size())) # debug
         for i in range(len(self.layers)):
-            #print(f"forward Layer {i+1}/{len(self.layers)}: " + str(self.layers[i])) # debug
             x = self.layers[i](x)
-            #print(f"forward {i+1}/{len(self.layers)}: " + str(x.size())) # debug
+            #print(f"forward {i+1}/{len(self.layers)}: " + str(x.size()) + f"  | Layer = {str(self.layers[i])}") # debug
         return x
 
     
@@ -290,6 +345,7 @@ class BinaryNN(nn.Module):
             - y_val: a NumPy Mx1 labels used for Validation.
         '''
 
+        # Creates the Iterable dataset
         train_dataset = MyDataset(
             torch.from_numpy(x_train).to(dtype=torch.float32),
             torch.from_numpy(y_train).to(dtype=torch.float32)
@@ -298,11 +354,14 @@ class BinaryNN(nn.Module):
 
         # Case of Retraining (Validation not necessary)
         if x_val is not None and y_val is not None:
+
+            # Creates the Iterable dataset
             val_dataset = MyDataset(
                 torch.from_numpy(x_val).to(dtype=torch.float32),
                 torch.from_numpy(y_val).to(dtype=torch.float32)
             )
             val_data = DataLoader(dataset=val_dataset, batch_size=int(self.params['batch_size']), shuffle=True)
+
         else:
             val_dataset = None
             val_data = None
@@ -323,10 +382,19 @@ class BinaryNN(nn.Module):
                 self.optimizer.zero_grad()
 
                 # Forward pass
+                if torch.any(torch.isnan(batch_x)):
+                    print(f"NaN trovato PRIMA di forward")
+                    print(batch_x)
+                    return
                 tr_outputs: torch.Tensor = self(batch_x)
+                if torch.any(torch.isnan(tr_outputs)):
+                    print(f"NaN trovato DOPO forward")
+                    print(tr_outputs)
+                    print(batch_x)
+                    return
 
                 # Cases of squeeze
-                if tr_outputs.size() != torch.Size([1]):
+                '''if tr_outputs.size() != torch.Size([1]):
                     # Case of squeeze don't needed (because we obtain a scalar)
                     if tr_outputs.size() == torch.Size([1,1]):
                         tr_outputs = tr_outputs[0]
@@ -335,9 +403,9 @@ class BinaryNN(nn.Module):
                         tr_outputs = tr_outputs[0][0]
                     # Case of squeeze needed
                     else:
-                        tr_outputs = tr_outputs.squeeze()
+                        tr_outputs = tr_outputs.squeeze()'''
 
-                # Compute Loss function
+                # Compute Loss function (MSE)
                 loss = self.criterion(tr_outputs, batch_y)
 
                 # Backward pass
@@ -346,33 +414,61 @@ class BinaryNN(nn.Module):
                 # Optimization
                 self.optimizer.step()
                 
+                # Computes the TR loss
+                tr_loss = loss.item()
+
                 # Number of decimal cyphers
                 dec_cyphers = self.params['decimal_cypher_degree']
 
-                # Predictions
-                batch_pred_y = torch.round(tr_outputs * (10**dec_cyphers)) / (10**dec_cyphers)
-                correct_batch_pred_y = sum(
-                    [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if torch.all(batch_pred_y_i == batch_y_i)]
-                )
-                #print("correct_batch_pred_y: " + str(correct_batch_pred_y) + "/" + str(len(batch_pred_y)) + " | batch_pred_y: " + str(batch_pred_y.size()) + " | batch_y: " + str(batch_pred_y.size()))
+                # Case of metric Accuracy
+                if self.params['metrics'] == 'Accuracy':
+                    batch_pred_y = torch.round(tr_outputs)
+                    correct_batch_pred_y = sum(
+                        [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
+                    )
+                    tr_metric = float(correct_batch_pred_y / len(batch_pred_y))
+                    print(f'[TR] batch_pred_y.size()={batch_pred_y.size()} tr_metric={tr_metric} correct_batch_pred_y={correct_batch_pred_y} batch_pred_y={len(batch_pred_y)}')
                 
-                # Compute Accuracy and Loss
-                tr_accuracy = float(correct_batch_pred_y / len(batch_pred_y))
-                tr_loss     = loss.item()
+                # Case of metric Mean Euclidian Error
+                elif self.params['metrics'] == 'MEE':
+                    batch_pred_y = tr_outputs
+                    if torch.any(torch.isnan(batch_pred_y)):
+                        batch_not_nan_indexes = ~torch.isnan(batch_pred_y)
+                        batch_pred_y = batch_pred_y[batch_not_nan_indexes] # Remove NaN values
+                        batch_y = batch_y[batch_not_nan_indexes] # Remove NaN values
+                        print("[TR] NaN trovato")
+                    mee = torch.mean(
+                        torch.norm(
+                            batch_pred_y - batch_y,
+                            dim=1
+                        )
+                    )
+                    tr_metric = mee.item()
+
+                # Case of error
+                else:
+                    raise ValueError('this metric is not supported. Try with "accuracy" or "MEE".')
+
+                '''print(f"{epoch}:{self.tr_batch_counter} tr_metric: " + str(tr_metric))
+                print(f"{epoch}:{self.tr_batch_counter} batch_pred_y:")
+                print(batch_pred_y)
+                print(f"{epoch}:{self.tr_batch_counter} batch_y:")
+                print(batch_y)
+                print("\n\n")'''
 
                 # Updates the mean of the Accuracy and the Loss on TR set
-                self.mean_tr_accuracy = float((self.mean_tr_accuracy * self.tr_batch_counter + tr_accuracy) / (self.tr_batch_counter+1))
-                self.mean_tr_loss     = float((self.mean_tr_loss * self.tr_batch_counter + tr_loss) / (self.tr_batch_counter+1))
+                self.mean_tr_metric = float((self.mean_tr_metric * self.tr_batch_counter + tr_metric) / (self.tr_batch_counter+1))
+                self.mean_tr_loss   = float((self.mean_tr_loss * self.tr_batch_counter + tr_loss) / (self.tr_batch_counter+1))
 
                 self.tr_batch_counter += 1
             
             # Updates the history
-            self.history['tr_accuracy'].append(self.mean_tr_accuracy)
+            self.history['tr_metric'].append(self.mean_tr_metric)
             self.history['tr_loss'].append(self.mean_tr_loss)
         
             # Case of Retraining (Validation not necessary)
             if val_data is None:
-                return self.mean_tr_accuracy, self.mean_tr_loss, self.mean_vl_accuracy, self.mean_vl_loss
+                return self.mean_tr_metric, self.mean_tr_loss, self.mean_vl_metric, self.mean_vl_loss
         
             # Evaluation on VL set
             with torch.no_grad():
@@ -387,7 +483,7 @@ class BinaryNN(nn.Module):
                     vl_outputs: torch.Tensor = self(batch_x)
 
                     # Cases of squeeze
-                    if vl_outputs.size() != torch.Size([1]):
+                    '''if vl_outputs.size() != torch.Size([1]):
                         # Case of squeeze don't needed (because we obtain a scalar)
                         if vl_outputs.size() == torch.Size([1,1]):
                             vl_outputs = vl_outputs[0]
@@ -396,24 +492,49 @@ class BinaryNN(nn.Module):
                             vl_outputs = vl_outputs[0][0]
                         # Case of squeeze needed
                         else:
-                            vl_outputs = vl_outputs.squeeze()
+                            vl_outputs = vl_outputs.squeeze()'''
 
-                    # Compute Loss function
+                    # Compute Loss function (MSE)
                     loss = self.criterion(vl_outputs, batch_y)
 
-                    # Predictions
-                    batch_pred_y = torch.round(vl_outputs)
-                    correct_batch_pred_y = sum(
-                        [float(1) for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if torch.all(batch_pred_y_i == batch_y_i)]
-                    )
+                    # Computes the TR loss
+                    vl_loss = loss.item()
 
-                    # Compute Accuracy and Loss
-                    vl_accuracy = correct_batch_pred_y / len(batch_pred_y)
-                    vl_loss     = loss.item()
+                    # Number of decimal cyphers
+                    dec_cyphers = self.params['decimal_cypher_degree']
+
+                    # Case of metric Accuracy
+                    if self.params['metrics'] == 'Accuracy':
+                        batch_pred_y = torch.round(vl_outputs)
+                        correct_batch_pred_y = sum(
+                            [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
+                        )
+                        vl_metric = float(correct_batch_pred_y / len(batch_pred_y))
+                        print(f'[VL] vl_metric={vl_metric} correct_batch_pred_y={correct_batch_pred_y} batch_pred_y={len(batch_pred_y)}')
+                    
+                    # Case of metric Mean Euclidian Error
+                    elif self.params['metrics'] == 'MEE':
+                        batch_pred_y = vl_outputs
+                        if torch.any(torch.isnan(batch_pred_y)):
+                            batch_not_nan_indexes = ~torch.isnan(batch_pred_y)
+                            batch_pred_y = batch_pred_y[batch_not_nan_indexes] # Remove NaN values
+                            batch_y = batch_y[batch_not_nan_indexes] # Remove NaN values
+                            print("[VL] NaN trovato")
+                        mee = torch.mean(
+                            torch.norm(
+                                batch_pred_y - batch_y,
+                                dim=1
+                            )
+                        )
+                        vl_metric = mee.item()
+
+                    # Case of error
+                    else:
+                        raise ValueError('this metric is not supported. Try with "accuracy" or "MEE".')
 
                     # Updates the mean of the Accuracy and the Loss on TR set
-                    self.mean_vl_accuracy = float((self.mean_vl_accuracy * self.vl_batch_counter + vl_accuracy) / (self.vl_batch_counter+1))
-                    self.mean_vl_loss     = float((self.mean_vl_loss * self.vl_batch_counter + vl_loss) / (self.vl_batch_counter+1))
+                    self.mean_vl_metric = float((self.mean_vl_metric * self.vl_batch_counter + vl_metric) / (self.vl_batch_counter+1))
+                    self.mean_vl_loss   = float((self.mean_vl_loss * self.vl_batch_counter + vl_loss) / (self.vl_batch_counter+1))
 
                     self.vl_batch_counter += 1
                 
@@ -425,19 +546,57 @@ class BinaryNN(nn.Module):
 
                 # Case of exit caused by Early Stopping
                 if earlystop_counter == self.patience:
-                    #print(f'Early Stopping: mean_vl_loss-previous={self.mean_vl_loss-prev_mean_vl_loss} < {self.tolerance}')
-                    # Restore model weights to the initial state
-                    #self.load_state_dict(initial_weights)
                     break
                 
                 prev_mean_vl_loss = self.mean_vl_loss
             
             # Update history
-            self.history['vl_accuracy'].append(self.mean_vl_accuracy)
+            self.history['vl_metric'].append(self.mean_vl_metric)
             self.history['vl_loss'].append(self.mean_vl_loss)
 
         # Returns the values computed
-        return self.mean_tr_accuracy, self.mean_tr_loss, self.mean_vl_accuracy, self.mean_vl_loss
+        return self.mean_tr_metric, self.mean_tr_loss, self.mean_vl_metric, self.mean_vl_loss
+    
+
+    def predict(self, x_test):
+        '''
+            Returns the predictions based on the given x_test dataset.
+            - x_test: the x values of the dataset as NumPy array.
+        '''
+        test_dataset = MyDataset(
+            torch.from_numpy(x_test).to(dtype=torch.float32),
+            torch.tensor([1 for _ in range(x_test.shape[0])])
+        )
+        test_data = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
+
+        # Predictions list
+        predictions = []
+        
+        # Batch iteration on TS set
+        for x, _ in test_data:
+
+            # Forward pass
+            ts_outputs: torch.Tensor = self(x)
+
+            # Cases of squeeze
+            '''if ts_outputs.size() != torch.Size([1]):
+                # Case of squeeze don't needed (because we obtain a scalar)
+                if ts_outputs.size() == torch.Size([1,1]):
+                    ts_outputs = ts_outputs[0]
+                # Case of squeeze don't needed (because we obtain a scalar)
+                elif ts_outputs.size() == torch.Size([1,1,1]):
+                    ts_outputs = ts_outputs[0][0]
+                # Case of squeeze needed
+                else:
+                    ts_outputs = ts_outputs.squeeze()'''
+            
+            # Optimization
+            self.optimizer.step()
+
+            # Append the predicted value
+            predictions.append(ts_outputs.tolist())
+        
+        return predictions
 
 
     def test(self, x_test, y_test):
@@ -479,12 +638,44 @@ class BinaryNN(nn.Module):
             # Optimization
             self.optimizer.step()
 
-            # Predictions
-            batch_pred_y = torch.round(ts_outputs)
-            correct_batch_pred_y = sum(
-                [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if torch.all(batch_pred_y_i == batch_y_i)]
-            )
-            #print("Current Batch true prediction: " + str(correct_batch_pred_y) + "/" + str(len(batch_pred_y)))
+            # Computes the TR loss
+            ts_loss = loss.item()
+
+            # Number of decimal cyphers
+            dec_cyphers = self.params['decimal_cypher_degree']
+
+            # Case of metric Accuracy
+            if self.params['metrics'] == 'Accuracy':
+                batch_pred_y = torch.round(ts_outputs)
+                correct_batch_pred_y = sum(
+                    [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
+                )
+                ts_metric = float(correct_batch_pred_y / len(batch_pred_y))
+                print(f'[TS] ts_metric={ts_metric} correct_batch_pred_y={correct_batch_pred_y} batch_pred_y={len(batch_pred_y)}')
+            
+            # Case of metric Mean Euclidian Error
+            elif self.params['metrics'] == 'MEE':
+                batch_pred_y = ts_outputs
+                if torch.any(torch.isnan(batch_pred_y)):
+                    batch_not_nan_indexes = ~torch.isnan(batch_pred_y)
+                    batch_pred_y = batch_pred_y[batch_not_nan_indexes] # Remove NaN values
+                    batch_y = batch_y[batch_not_nan_indexes] # Remove NaN values
+                    print("[TR] NaN trovato")
+                mee = torch.mean(
+                    torch.norm(
+                        batch_pred_y - batch_y,
+                        dim=1
+                    )
+                )
+                ts_metric = mee.item()
+
+            # Case of error
+            else:
+                raise ValueError('this metric is not supported. Try with "accuracy" or "MEE".')
+
+            # Updates the mean of the Accuracy and the Loss on TR set
+            self.mean_ts_metric = float((self.mean_ts_metric * self.ts_batch_counter + ts_metric) / (self.ts_batch_counter+1))
+            self.mean_ts_loss   = float((self.mean_ts_loss * self.ts_batch_counter + ts_loss) / (self.ts_batch_counter+1))
 
             # Case of first assignment
             if self.y_true == None:
@@ -499,22 +690,14 @@ class BinaryNN(nn.Module):
             # Case of concatenation of tensors
             else:
                 self.y_pred = torch.concat([self.y_pred, batch_pred_y], dim=0)
-            
-            # Compute Accuracy and Loss
-            ts_accuracy = float(correct_batch_pred_y / len(batch_pred_y))
-            ts_loss     = loss.item()
 
             # Updates the history
-            self.history['ts_accuracy'].append(ts_accuracy)
+            self.history['ts_metric'].append(ts_metric)
             self.history['ts_loss'].append(ts_loss)
-
-            # Updates the mean of the Accuracy and the Loss on TR set
-            self.mean_ts_accuracy = float((self.mean_ts_accuracy * self.ts_batch_counter + ts_accuracy) / (self.ts_batch_counter+1))
-            self.mean_ts_loss     = float((self.mean_ts_loss * self.ts_batch_counter + ts_loss) / (self.ts_batch_counter+1))
 
             self.ts_batch_counter += 1
     
-        return self.mean_ts_loss, self.mean_ts_accuracy
+        return self.mean_ts_loss, self.mean_ts_metric
 
     
     def score(self):
