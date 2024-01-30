@@ -87,7 +87,7 @@ class BinaryNN():
         return K.mean(K.sqrt(K.sum(K.square(y_pred - y_true), axis=-1)))
 
 
-    def print_plot(self):
+    def print_plot(self, test=False):
         '''
             Prints the plot based on the history of the trained model.
         '''
@@ -99,6 +99,8 @@ class BinaryNN():
         # Print of the Plot
         plt.figure()
         plt.plot(self.mean_tr_loss_list, label='Training MSE')
+        if(test):
+            plt.plot(self.mean_vl_loss_list, label='Test MSE', linestyle='--')
         plt.plot(self.mean_vl_loss_list, label='Validation MSE', linestyle='--')
         plt.title('Model MSE')
         plt.xlabel('Epoch')
@@ -107,6 +109,8 @@ class BinaryNN():
         # Print of the Plot
         plt.figure()
         plt.plot(self.mean_tr_acc_list, label='Training MEE')
+        if(test):
+            plt.plot(self.mean_vl_loss_list, label='Test MEE', linestyle='--')
         plt.plot(self.mean_vl_acc_list, label='Validation MEE', linestyle='--')
         plt.title('Model MEE')
         plt.xlabel('Epoch')
