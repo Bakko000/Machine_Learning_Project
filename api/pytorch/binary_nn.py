@@ -651,7 +651,7 @@ class BinaryNN(nn.Module):
                     [1 for batch_pred_y_i, batch_y_i in zip(batch_pred_y, batch_y) if batch_pred_y_i == batch_y_i]
                 )
                 ts_metric = float(correct_batch_pred_y / len(batch_pred_y))
-                print(f'[TS] ts_metric={ts_metric} correct_batch_pred_y={correct_batch_pred_y} batch_pred_y={len(batch_pred_y)}')
+                #print(f'[TS] ts_metric={ts_metric} correct_batch_pred_y={correct_batch_pred_y} batch_pred_y={len(batch_pred_y)}')
             
             # Case of metric Mean Euclidian Error
             elif self.params['metrics'] == 'MEE':
