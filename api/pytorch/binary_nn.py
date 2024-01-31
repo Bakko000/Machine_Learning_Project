@@ -621,16 +621,16 @@ class BinaryNN(nn.Module):
             ts_outputs: torch.Tensor = self(batch_x)
 
             # Cases of squeeze
-            if ts_outputs.size() != torch.Size([1]):
+           # if ts_outputs.size() != torch.Size([1]):
+            #    # Case of squeeze don't needed (because we obtain a scalar)
+            #    if ts_outputs.size() == torch.Size([1,1]):
+            #        ts_outputs = ts_outputs[0]
                 # Case of squeeze don't needed (because we obtain a scalar)
-                if ts_outputs.size() == torch.Size([1,1]):
-                    ts_outputs = ts_outputs[0]
-                # Case of squeeze don't needed (because we obtain a scalar)
-                elif ts_outputs.size() == torch.Size([1,1,1]):
-                    ts_outputs = ts_outputs[0][0]
-                # Case of squeeze needed
-                else:
-                    ts_outputs = ts_outputs.squeeze()
+           #     elif ts_outputs.size() == torch.Size([1,1,1]):
+           #         ts_outputs = ts_outputs[0][0]
+           #     # Case of squeeze needed
+           #     else:
+           #         ts_outputs = ts_outputs.squeeze()
 
             # Compute Loss function
             loss = self.criterion(ts_outputs, batch_y)
