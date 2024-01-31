@@ -25,30 +25,35 @@ class DataHandler():
 
     def set_params_combinations(self, params: dict) -> dict:
         '''
-            
+            Creates and saves into the class instance a list with all the possible combinations of parameters \
+            in the dictionary \"params\".
+            - params: dictionary with parameters.
         '''
         self.current_params_index = 0
         self.params_index_dict = {}
         self.params_combinations = []
         for key in params.keys():
             self.params_index_dict[key] = 0 # current_index for that key
-        while sum([index+1 for key, index in self.params_index_dict.items()]) != sum(len(val_list) for key, val_list in params.items()):
+        while sum([index+1 for _, index in self.params_index_dict.items()]) != sum(len(val_list) for _, val_list in params.items()):
             params_i = {}
             for key, i in self.params_index_dict.items():
                 params_i[key] = params[key][i]
+            self.params_combinations.append(params_i)
             for key in self.params_index_dict.keys():
                 self.params_index_dict[key] += 1
                 if self.params_index_dict[key] < len(params[key]):
                     break
                 self.params_index_dict[key] = 0
-            self.params_combinations.append(params_i)
-        
-        #for combination in self.params_combinations:
-            #print(combination)
-    
+        params_i = {}
+        for key, i in self.params_index_dict.items():
+            params_i[key] = params[key][i]
+        self.params_combinations.append(params_i)
+
 
     def get_params_combinations(self) -> dict:
         '''
+            Returns the list of all the combinations (as doctionaries) got in the last call of the method of \
+            set_params_combinations.
         '''
         return self.params_combinations
 
@@ -56,24 +61,30 @@ class DataHandler():
     def load_data(self, path: str, delimiter=' ') -> pd.DataFrame:
         '''
             Returns the DataFrame associated to the Data set found at path \"path\".\n
-            - path: path to the CSV file with data.
+            - path: path to the CSV file with data.\n
+            - delimiter: character used as delimiter in the CSV file.
         '''
         return pd.read_csv(filepath_or_buffer=path, names=self.columns_name, delimiter=delimiter, comment='#')
     
 
-    def write_data(self, filename: str, id_list: list, data: list, cols_name: list):
+    def write_data(self, filename: str, id_list: list, data: list[list], cols_name: list):
         '''
-            Creates a file CSV with the dataset passed as parameter and some static comments.
+            Creates a file CSV with the dataset passed as parameter and some static comments.\n
+            - filename: name of the CSV file.\n
+            - id_list: list of IDs which will be added as the first column of the CSV file.\n
+            - data: list of data (matrix of 2 dimensions) which will be added to the CSV file.\n
+            - cols_name: list of names of the columns.
         '''
+        nickname = "EmmElle"
 
         # Opens the CSV file
         with open(filename, 'w') as f:
 
             # Writes some comments
-            f.write('# Emad Gianluca Corrado\n')
-            f.write(f'# Nickname\n')
-            f.write(f'# Dataset name\n')
-            f.write(f'# Date: 27 Jan 2024\n')
+            f.write('# Creators: Emad Chelhi - Gianluca Panzani - Corrado Baccheschi\n')
+            f.write(f'# Nickname: {nickname}\n')
+            f.write(f'# Dataset\'s name: {nickname}_3-th_place_dataset\n')
+            f.write(f'# Date: 31 Jan 2024\n')
 
             # Writes columns name
             for i, col in enumerate(cols_name):
@@ -132,11 +143,7 @@ class DataHandler():
         
         # Case of both splits (rows split and columns split)
         else:
-            #x_train = x[:int(x.shape[0] * rows_split_perc), :]
-            #x_val = x[int(x.shape[0] * rows_split_perc):, :]
             x_train, x_val = np.split(x, [int(x.shape[0] * rows_split_perc)], axis=0)
-            #y_train = y[:int(x.shape[0] * rows_split_perc), :]
-            #y_val = y[int(x.shape[0] * rows_split_perc):, :]
             y_train, y_val = np.split(y, [int(y.shape[0] * rows_split_perc)], axis=0)
             return x_train, y_train, x_val, y_val
 
