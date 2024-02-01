@@ -16,6 +16,9 @@ class DataHandler():
 
     def random_dictionary(self, params: dict) -> dict:
         '''
+            Choose a random value for each list associated with its own key and returns a new dictionary \
+            with that association.\n
+            - params: dictionary with parameters (keys = parameter_name, values = possible_values_list).
         '''
         new_params = {}
         for key in params.keys():
@@ -26,8 +29,8 @@ class DataHandler():
     def set_params_combinations(self, params: dict) -> dict:
         '''
             Creates and saves into the class instance a list with all the possible combinations of parameters \
-            in the dictionary \"params\".
-            - params: dictionary with parameters.
+            in the dictionary \"params\".\n
+            - params: dictionary with parameters (keys = parameter_name, values = possible_values_list).
         '''
         self.current_params_index = 0
         self.params_index_dict = {}
@@ -120,7 +123,7 @@ class DataHandler():
             - x_val: is like \"df\" without the columns specified in the list \"cols_name_split\".\n
             - y_val: are the columns indentified by the list \"cols_name_split\" used for Validation.\n\n
             The parameters are:\n
-            - df: the input DataFrame.\n
+            - data: the input DataFrame.\n
             - cols_name_split: list of names of target columns.\n
             - rows_split_perc: percentage of the data to split for Training, and so the 1-rows_split_perc percentage for Validation.
         '''
@@ -152,7 +155,7 @@ class DataHandler():
         '''
             Returns the DataFrame got by appling the 1-Hot Encoding to the DataFrame \
             passed as parameter.\n
-            - df: the DataFrame to whom is applied the 1-Hot Encoding.
+            - data: the DataFrame to whom is applied the 1-Hot Encoding.
         '''
 
         # Creation of a Deep Copy of the original DataFrame
