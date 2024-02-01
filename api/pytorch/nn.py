@@ -157,7 +157,7 @@ class NN(nn.Module):
             f" Mean Test Loss:           {self.mean_ts_loss}\n" + \
             f" Mean Training {metric}   {self.mean_tr_metric}\n" + \
             f" Mean Validation {metric} {self.mean_vl_metric}\n" + \
-            f" Mean Test {metric}        {self.mean_ts_metric}\n" + tail
+            f" Mean Test {metric}       {self.mean_ts_metric}\n" + tail
     
 
     def init_weights(self):
@@ -182,9 +182,24 @@ class NN(nn.Module):
                 #print(f"After initialization - Layer {module}: {module.weight.shape}") # debug
 
 
+    def print_acc_plot(self):
+        '''
+            Prints the plot based on the accuracy of the trained model.
+        '''
+        label = 'Accuracy' if self.params['metrics'] == 'Accuracy' else 'MEE'
+            
+        plt.figure()
+        plt.plot(self.history['tr_metric'], label=f'Training {label}')
+        plt.plot(self.history['vl_metric'], label=f'Validation {label}', linestyle='--')
+        plt.title('Learning Curve')
+        plt.xlabel('Epoch')
+        plt.ylabel(label)
+        plt.legend()
+    
+
     def print_loss_plot(self):
         '''
-            Prints the plot based on the history of the trained model.
+            Prints the plot based on the loss of the trained model.
         '''
         plt.figure()
         plt.plot(self.history['tr_loss'], label='Training Loss')
@@ -195,9 +210,9 @@ class NN(nn.Module):
         plt.legend()
     
 
-    def print_roc_curve(self, y_test):
+    def print_roc_curve(self):
         '''
-            Prints the ROC curve graphic.
+            Prints the ROC curve's plot.
         '''
         # Calculate the ROC curve 
         fpr, tpr, thresholds = roc_curve(
@@ -241,7 +256,7 @@ class NN(nn.Module):
         )
     
 
-    def print_confusion_matrix(self, y_test):
+    def print_confusion_matrix(self):
         '''
             Prints the confusion matrix based on the predictions made during the Testing Phase.
         '''
