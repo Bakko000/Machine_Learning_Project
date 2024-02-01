@@ -258,7 +258,7 @@ class NN(nn.Module):
 
     def print_confusion_matrix(self):
         '''
-            Prints the confusion matrix based on the predictions made during the Testing Phase.
+            Prints the confusion matrix based on the predictions made during the Testing Phase and on the true values.
         '''
         
         # Prints the Confusion Matrix as a DataFrame (alternative: tn, fp, fn, tp = confusion_matrix(y_true=y_test, y_pred=y_predictions).ravel())
@@ -273,7 +273,7 @@ class NN(nn.Module):
     
     def is_better_model_than(self, model):
         '''
-            Returns True if this (self) model has better metrics than the model passed as parameter, \
+            Returns True if this (self) model has better metrics (Accuracy or MEE) than the model passed as parameter, \
             otherwise False.
             - model: a model of the same type (class type NN) of this (self).
         '''
@@ -317,7 +317,7 @@ class NN(nn.Module):
 
     def forward(self, x):
         '''
-            Execute the forwarding pass.
+            Executes the forwarding pass.
         '''
         #print(f"forward 0/{len(self.layers)}: " + str(x.size())) # debug
         for i in range(len(self.layers)):
@@ -331,8 +331,8 @@ class NN(nn.Module):
             Train the model based on the data passed as parameters and returns the history.\n
             - x_train: a NumPy array MxN dataset used for Training.\n
             - y_train: a NumPy Mx1 labels used for Training.\n
-            - x_val: a NumPy array MxN dataset used for Validation.\n
-            - y_val: a NumPy Mx1 labels used for Validation.
+            - x_val: a NumPy array MxN dataset used for Validation (if None will use only TR set).\n
+            - y_val: a NumPy Mx1 labels used for Validation (if None will use only TR set).
         '''
 
         # Creates the Iterable dataset
@@ -535,8 +535,8 @@ class NN(nn.Module):
 
     def test(self, x_test, y_test):
         '''
-            Evaluates the model on the Test set passed as parameter and returns a tuple of the following format: \
-            (ts_loss, ts_accuracy)\n
+            Evaluates the model on the Test set passed as parameter.\n
+            Returns a tuple of the following format: (ts_loss, ts_accuracy).\n
             - x_test: a NumPy array MxN dataset used for Testing.\n
             - y_test: a NumPy array Mx1 labels used for Testing.
         '''
@@ -621,11 +621,8 @@ class NN(nn.Module):
     
     def score(self):
         '''
-            Evaluates the model computing the Beta1-score and the Beta2-score based on the Test set passed as parameter. \
-            Returns a tuple of the following format: \
-            (f1_score, f2_score)\n
-            - x_test: a NumPy array MxN dataset used for Testing.\n
-            - y_test: a NumPy array Mx1 labels used for Testing.
+            Evaluates the model computing the Beta1-score and the Beta2-score based on the predictions and on the true values.\n
+            Returns a tuple of the following format: (f1_score, f2_score)
         '''
 
         # Compute Precision and Recall
